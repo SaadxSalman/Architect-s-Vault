@@ -1,12 +1,20 @@
 
 ---
 
-### File: README.md
-
 ```markdown
 # FileOrganizer CLI
 
 A lightweight, high-performance Node.js command-line tool designed to clean up cluttered directories by automatically categorizing files into folders based on their extensions.
+
+### Real-World Use Case
+
+Imagine you have a **Downloads** folder with 1,000 mixed files. Running this script would instantly turn that mess into a clean set of folders:
+
+* 📁 **PDF** (All your resumes and ebooks)
+* 📁 **PNG** (All your screenshots)
+* 📁 **ZIP** (All your downloaded software)
+* 📁 **MP4** (All your videos)
+
 
 ## 🚀 Features
 - **Fast Asynchronous I/O**: Uses `fs/promises` for non-blocking file operations.
