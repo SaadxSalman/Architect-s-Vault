@@ -3,95 +3,154 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Weather OS | Futuristic Interface</title>
+    <title>Weather OS | saadxsalman</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --accent: #22d3ee;
+            --bg-top: #0f172a;
+            --bg-bottom: #020617;
+        }
+
         body {
-            background: radial-gradient(circle at top left, #1e293b, #0f172a, #020617);
-            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at center, var(--bg-top), var(--bg-bottom));
+            font-family: 'Rajdhani', sans-serif;
+            overflow: hidden; /* Keep particles contained */
         }
+
         .futuristic-font { font-family: 'Orbitron', sans-serif; }
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(12px);
+
+        /* Glassmorphism with specialized border */
+        .glass-card {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(20px) saturate(180%);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(255, 255, 255, 0.05);
         }
-        .neon-glow {
-            text-shadow: 0 0 10px rgba(56, 189, 248, 0.8);
+
+        /* Particle Animation */
+        .particle {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            opacity: 0.3;
+            pointer-events: none;
+            animation: float linear infinite;
         }
-        .neon-border:focus {
-            border-color: #38bdf8;
-            box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+
+        @keyframes float {
+            0% { transform: translateY(100vh) translateX(0); }
+            100% { transform: translateY(-10vh) translateX(20px); }
+        }
+
+        /* Weather Condition Themes */
+        .theme-clear { --accent: #fbbf24; --bg-top: #451a03; }
+        .theme-clouds { --accent: #94a3b8; --bg-top: #1e293b; }
+        .theme-rain { --accent: #38bdf8; --bg-top: #0c4a6e; }
+        .theme-snow { --accent: #f8fafc; --bg-top: #334155; }
+
+        .neon-text { text-shadow: 0 0 15px var(--accent); }
+        .neon-btn { box-shadow: 0 0 20px rgba(34, 211, 238, 0.3); }
+        
+        /* Scanning Animation */
+        .scanline {
+            width: 100%;
+            height: 2px;
+            background: var(--accent);
+            opacity: 0.2;
+            position: absolute;
+            animation: scan 4s linear infinite;
+        }
+
+        @keyframes scan {
+            0% { top: 0%; }
+            100% { top: 100%; }
         }
     </style>
 </head>
-<body class="text-slate-200 flex items-center justify-center min-h-screen p-4">
+<body class="text-slate-100 flex items-center justify-center min-h-screen relative 
+    <%= weather ? 'theme-' + weather.description.split(' ')[0] : '' %>">
 
-    <div class="absolute top-10 left-10 w-64 h-64 bg-cyan-500/10 rounded-full blur-[100px] animate-pulse"></div>
-    <div class="absolute bottom-10 right-10 w-80 h-80 bg-blue-600/10 rounded-full blur-[120px]"></div>
+    <div id="particles" class="absolute inset-0 z-0"></div>
 
-    <div class="glass-panel p-8 rounded-3xl w-full max-w-md relative z-10 overflow-hidden">
-        <div class="mb-8">
-            <h1 class="futuristic-font text-3xl font-bold tracking-widest text-cyan-400 neon-glow uppercase">
-                Weather<span class="text-white">OS</span>
-            </h1>
-            <p class="text-xs text-slate-400 tracking-tighter uppercase mt-1">Satellite Uplink Active</p>
-        </div>
+    <div class="glass-card p-10 rounded-[2rem] w-full max-w-md relative z-10 border-t-2 border-l-2 border-white/20">
+        <div class="scanline"></div>
         
-        <form action="/weather" method="POST" class="space-y-4">
-            <div class="relative">
-                <input type="text" name="city" placeholder="SEARCH COORDINATES..." required 
-                    class="bg-slate-900/50 border border-slate-700 p-4 rounded-xl w-full outline-none neon-border transition-all futuristic-font text-sm tracking-widest placeholder:text-slate-600">
+        <div class="flex justify-between items-start mb-10">
+            <div>
+                <h1 class="futuristic-font text-2xl font-bold tracking-widest text-cyan-400 neon-text">
+                    WEATHER<span class="text-white opacity-80">OS</span>
+                </h1>
+                <p class="text-[10px] tracking-[0.4em] text-cyan-500/70 font-bold uppercase">User: saadxsalman</p>
             </div>
+            <div class="h-2 w-2 rounded-full bg-cyan-400 animate-ping"></div>
+        </div>
+
+        <form action="/weather" method="POST" class="relative group mb-8">
+            <input type="text" name="city" placeholder="LOCATION QUERY..." required 
+                class="bg-black/40 border border-white/10 p-4 pl-6 rounded-2xl w-full outline-none focus:border-cyan-400/50 transition-all futuristic-font text-xs tracking-widest">
             <button type="submit" 
-                class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold py-3 rounded-xl w-full transition-all transform hover:scale-[1.02] active:scale-95 futuristic-font tracking-widest text-sm shadow-[0_0_20px_rgba(6,182,212,0.5)]">
-                EXECUTE SCAN
+                class="mt-4 bg-transparent border-2 border-cyan-400/50 hover:bg-cyan-400 hover:text-black text-cyan-400 font-bold py-3 rounded-2xl w-full transition-all duration-300 futuristic-font tracking-widest text-xs neon-btn">
+                INITIATE SCAN
             </button>
         </form>
 
         <% if(weather !== null) { %>
-            <div class="mt-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <div class="flex flex-col items-center">
-                    <h2 class="text-2xl font-light tracking-widest mb-2"><%= weather.city %></h2>
-                    
-                    <div class="relative">
-                        <div class="absolute inset-0 bg-cyan-400/20 blur-3xl rounded-full"></div>
-                        <img class="relative w-32 h-32" src="http://openweathermap.org/img/wn/<%= weather.icon %>@4x.png" alt="icon">
-                    </div>
+            <div class="space-y-6 text-center">
+                <div class="relative inline-block">
+                    <div class="absolute inset-0 bg-cyan-500/20 blur-[60px] rounded-full"></div>
+                    <img class="relative w-40 h-40 drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]" 
+                         src="http://openweathermap.org/img/wn/<%= weather.icon %>@4x.png" alt="icon">
+                </div>
 
-                    <p class="text-7xl font-bold futuristic-font mt-2 text-white">
-                        <%= weather.temp %><span class="text-cyan-400 text-4xl">°</span>
+                <div>
+                    <h2 class="text-4xl font-light tracking-tight"><%= weather.city %></h2>
+                    <p class="text-7xl font-bold futuristic-font mt-2 neon-text">
+                        <%= Math.round(weather.temp) %><span class="text-3xl align-top">°C</span>
                     </p>
-                    
-                    <div class="mt-4 px-4 py-1 bg-cyan-500/10 border border-cyan-500/20 rounded-full">
-                        <p class="capitalize text-cyan-400 text-xs font-semibold tracking-[0.2em]"><%= weather.description %></p>
-                    </div>
+                    <p class="capitalize text-cyan-400 tracking-[0.3em] text-sm mt-4 font-bold"><%= weather.description %></p>
+                </div>
 
-                    <div class="grid grid-cols-2 gap-4 w-full mt-8 border-t border-slate-700/50 pt-6">
-                        <div class="text-center">
-                            <p class="text-[10px] text-slate-500 uppercase tracking-widest">Visibility</p>
-                            <p class="text-sm font-semibold">Maximum</p>
-                        </div>
-                        <div class="text-center">
-                            <p class="text-[10px] text-slate-500 uppercase tracking-widest">System Status</p>
-                            <p class="text-sm font-semibold text-emerald-400">Stable</p>
-                        </div>
+                <div class="grid grid-cols-3 gap-2 pt-8 border-t border-white/10">
+                    <div class="p-2">
+                        <p class="text-[9px] text-slate-500 uppercase">Atmosphere</p>
+                        <p class="text-xs font-bold">Optimal</p>
+                    </div>
+                    <div class="p-2 border-x border-white/5">
+                        <p class="text-[9px] text-slate-500 uppercase">Source</p>
+                        <p class="text-xs font-bold">Station 7</p>
+                    </div>
+                    <div class="p-2">
+                        <p class="text-[9px] text-slate-500 uppercase">Uplink</p>
+                        <p class="text-xs font-bold text-cyan-400">Secure</p>
                     </div>
                 </div>
             </div>
         <% } %>
 
         <% if(error !== null) { %>
-            <div class="mt-6 p-3 bg-red-500/10 border border-red-500/50 rounded-lg">
-                <p class="text-red-400 text-xs futuristic-font text-center uppercase tracking-tighter"><%= error %></p>
+            <div class="mt-6 p-4 bg-red-500/10 border-l-4 border-red-500 rounded-r-lg">
+                <p class="text-red-400 text-[10px] futuristic-font uppercase tracking-widest"><%= error %></p>
             </div>
         <% } %>
     </div>
 
-    <div class="absolute bottom-4 text-[10px] text-slate-600 tracking-[0.3em] uppercase">
-        Developed by <span class="text-slate-400">saadxsalman</span> // Terminal v4.0
-    </div>
+    <script>
+        const container = document.getElementById('particles');
+        const particleCount = 40;
+
+        for (let i = 0; i < particleCount; i++) {
+            const p = document.createElement('div');
+            p.className = 'particle';
+            const size = Math.random() * 3 + 'px';
+            p.style.width = size;
+            p.style.height = size;
+            p.style.left = Math.random() * 100 + 'vw';
+            p.style.animationDuration = (Math.random() * 10 + 5) + 's';
+            p.style.animationDelay = (Math.random() * 5) + 's';
+            container.appendChild(p);
+        }
+    </script>
 </body>
 </html>
