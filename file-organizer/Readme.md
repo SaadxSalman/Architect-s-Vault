@@ -1,7 +1,6 @@
 
 ---
 
-```markdown
 # FileOrganizer CLI
 
 A lightweight, high-performance Node.js command-line tool designed to clean up cluttered directories by automatically categorizing files into folders based on their extensions.
