@@ -3,12 +3,11 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-// Registration Route: /api/auth/register
+// Registration Route
 router.post('/register', async (req, res) => {
     try {
         const { username, password } = req.body;
 
-        // Check if user already exists
         const existingUser = await User.findOne({ username });
         if (existingUser) {
             return res.status(400).json({ message: "Username already taken" });
@@ -24,34 +23,36 @@ router.post('/register', async (req, res) => {
     }
 });
 
-// Login Route: /api/auth/login
+// Login Route
 router.post('/login', async (req, res) => {
     try {
         const { username, password } = req.body;
+        console.log(`Login attempt for: ${username}`); // Debug log
 
-        // 1. Find user
         const user = await User.findOne({ username });
         if (!user) {
-            return res.status(400).json({ message: "Invalid username or password" });
+            return res.status(400).json({ message: "User not found" });
         }
 
-        // 2. Check password
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            return res.status(400).json({ message: "Invalid username or password" });
+            return res.status(400).json({ message: "Password does not match" });
         }
 
-        // 3. Generate JWT
-        // We use 'userId' because your middleware looks for req.user.userId
+        // Generate JWT - with fallback to ensure it doesn't crash if .env fails
+        const secret = process.env.JWT_SECRET || 'fallback_secret_saadxsalman';
+        
         const token = jwt.sign(
             { userId: user._id }, 
-            process.env.JWT_SECRET, 
+            secret, 
             { expiresIn: '1h' }
         );
 
+        console.log("Login successful, token generated");
         res.json({ token });
+        
     } catch (err) {
-        console.error("Login Error:", err);
+        console.error("Login Error Details:", err);
         res.status(500).json({ message: "Server error during login" });
     }
 });

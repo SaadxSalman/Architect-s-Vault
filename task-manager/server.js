@@ -5,32 +5,79 @@ const cors = require('cors');
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = 3000;
 
 // 1. GLOBAL MIDDLEWARE
-app.use(cors()); 
-app.use(express.json()); 
-app.use(express.static(__dirname)); // Serves your index.html
+app.use(cors()); // Allows frontend to talk to backend
+app.use(express.json()); // Parses incoming JSON data (Required for Login/Register)
+app.use(express.static(__dirname)); // Serves index.html at http://localhost:3000
 
 // 2. DATABASE CONNECTION
-// Ensure your .env has MONGO_URI, otherwise it defaults to local
 mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/taskdb')
     .then(() => console.log("✅ MongoDB Connected Successfully"))
     .catch(err => console.error("❌ MongoDB Connection Error:", err));
 
-// 3. API ROUTES
-// We mount the external route files here to keep this file clean.
-app.use('/api/auth', require('./routes/auth')); 
-app.use('/api/tasks', require('./routes/tasks'));
+// 3. INTERNAL IMPORTS
+const authMiddleware = require('./middleware/auth');
+const Task = require('./models/Task');
 
-// 4. FALLBACK ROUTE
-// Directs any other requests to your frontend
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+// 4. API ROUTES
+
+// Auth Routes (Register/Login)
+// This mounts the code from routes/auth.js onto the /api/auth path
+app.use('/api/auth', require('./routes/auth'));
+
+// Task Routes (Protected by authMiddleware)
+// Get all user tasks
+app.get('/api/tasks', authMiddleware, async (req, res) => {
+    try {
+        const tasks = await Task.find({ userId: req.user.userId });
+        res.json(tasks);
+    } catch (err) {
+        res.status(500).json({ message: "Server Error" });
+    }
+});
+
+// Create a new task
+app.post('/api/tasks', authMiddleware, async (req, res) => {
+    try {
+        const newTask = new Task({ 
+            title: req.body.title, 
+            userId: req.user.userId 
+        });
+        await newTask.save();
+        res.status(201).json(newTask);
+    } catch (err) {
+        res.status(400).json({ message: "Error creating task" });
+    }
+});
+
+// Toggle Task Status
+app.patch('/api/tasks/:id', authMiddleware, async (req, res) => {
+    try {
+        const task = await Task.findOneAndUpdate(
+            { _id: req.params.id, userId: req.user.userId },
+            { completed: req.body.completed },
+            { new: true }
+        );
+        res.json(task);
+    } catch (err) {
+        res.status(400).json({ message: "Update failed" });
+    }
+});
+
+// Delete Task
+app.delete('/api/tasks/:id', authMiddleware, async (req, res) => {
+    try {
+        await Task.findOneAndDelete({ _id: req.params.id, userId: req.user.userId });
+        res.json({ message: "Task deleted" });
+    } catch (err) {
+        res.status(400).json({ message: "Delete failed" });
+    }
 });
 
 // 5. START SERVER
 app.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
-    console.log(`🔑 JWT_SECRET status: ${process.env.JWT_SECRET ? 'SET' : 'MISSING'}`);
+    console.log(`📂 Serving static files from: ${__dirname}`);
 });
