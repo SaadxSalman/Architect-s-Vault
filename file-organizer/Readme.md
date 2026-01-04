@@ -103,5 +103,3 @@ To get this live on your profile, run these commands in your project folder:
    git push -u origin main
 
 ```
-
-Would you like me to generate a **`.gitignore`** file for you as well to keep your repository clean?
