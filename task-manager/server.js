@@ -2,32 +2,34 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const path = require('path');
 
 const app = express();
 const PORT = 3000;
 
-// Middleware
-app.use(express.json());
-app.use(cors()); // Critical for the HTML file to connect
-app.use(express.static(__dirname));
+// 1. GLOBAL MIDDLEWARE
+app.use(cors()); // Allows frontend to talk to backend
+app.use(express.json()); // Parses incoming JSON data (Required for Login/Register)
+app.use(express.static(__dirname)); // Serves index.html at http://localhost:3000
 
-// Database Connection
+// 2. DATABASE CONNECTION
 mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/taskdb')
     .then(() => console.log("✅ MongoDB Connected Successfully"))
     .catch(err => console.error("❌ MongoDB Connection Error:", err));
 
-// Internal Imports
-const auth = require('./middleware/auth');
-const User = require('./models/User');
+// 3. INTERNAL IMPORTS
+const authMiddleware = require('./middleware/auth');
 const Task = require('./models/Task');
 
-// --- API Routes ---
+// 4. API ROUTES
 
-// Auth
+// Auth Routes (Register/Login)
+// This mounts the code from routes/auth.js onto the /api/auth path
 app.use('/api/auth', require('./routes/auth'));
 
-// Fetch all tasks for the logged-in user
-app.get('/api/tasks', auth, async (req, res) => {
+// Task Routes (Protected by authMiddleware)
+// Get all user tasks
+app.get('/api/tasks', authMiddleware, async (req, res) => {
     try {
         const tasks = await Task.find({ userId: req.user.userId });
         res.json(tasks);
@@ -37,7 +39,7 @@ app.get('/api/tasks', auth, async (req, res) => {
 });
 
 // Create a new task
-app.post('/api/tasks', auth, async (req, res) => {
+app.post('/api/tasks', authMiddleware, async (req, res) => {
     try {
         const newTask = new Task({ 
             title: req.body.title, 
@@ -50,8 +52,8 @@ app.post('/api/tasks', auth, async (req, res) => {
     }
 });
 
-// Toggle Task Status (Completed/Pending)
-app.patch('/api/tasks/:id', auth, async (req, res) => {
+// Toggle Task Status
+app.patch('/api/tasks/:id', authMiddleware, async (req, res) => {
     try {
         const task = await Task.findOneAndUpdate(
             { _id: req.params.id, userId: req.user.userId },
@@ -65,7 +67,7 @@ app.patch('/api/tasks/:id', auth, async (req, res) => {
 });
 
 // Delete Task
-app.delete('/api/tasks/:id', auth, async (req, res) => {
+app.delete('/api/tasks/:id', authMiddleware, async (req, res) => {
     try {
         await Task.findOneAndDelete({ _id: req.params.id, userId: req.user.userId });
         res.json({ message: "Task deleted" });
@@ -74,6 +76,8 @@ app.delete('/api/tasks/:id', auth, async (req, res) => {
     }
 });
 
+// 5. START SERVER
 app.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
+    console.log(`📂 Serving static files from: ${__dirname}`);
 });
