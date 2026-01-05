@@ -10,6 +10,8 @@ A lightweight, real-time web scraping application built with **Node.js**. This p
 ![Tailwind](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
 
 ## 🚀 Features
+- **Engine:** Puppeteer (Headless Chrome) - *Used to bypass 403 Forbidden errors.*
+- **Parsing:** Cheerio
 - **Live Scraping:** Fetches current technology headlines using `Axios`.
 - **HTML Parsing:** Utilizes `Cheerio` to traverse the DOM and extract specific data points.
 - **Dynamic UI:** Renders data beautifully using `EJS` templates and Tailwind CSS.
@@ -17,6 +19,7 @@ A lightweight, real-time web scraping application built with **Node.js**. This p
 - **Bot Mimicry:** Includes custom User-Agent headers to ensure reliable data retrieval.
 
 ## 🛠️ Tech Stack
+
 - **Backend:** Node.js, Express.js
 - **Scraping:** Axios (HTTP Client), Cheerio (HTML Parser)
 - **Frontend:** EJS, Tailwind CSS
