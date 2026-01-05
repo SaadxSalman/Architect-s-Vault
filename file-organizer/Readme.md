@@ -79,26 +79,3 @@ The tool scans the target directory and identifies files. It then:
 **After:**
 `JPG/photo.jpg, PDF/report.pdf, JS/script.js`
 
-## 📝 License
-
-MIT
-
-```
-
----
-
-### Final Steps to GitHub
-
-To get this live on your profile, run these commands in your project folder:
-
-1. **Initialize Git:** `git init`
-2. **Add Files:** `git add .`
-3. **Commit:** `git commit -m "Initial commit: Functional FileOrganizer CLI"`
-4. **Create Repo:** Go to GitHub, create a new repo named `file-organizer`.
-5. **Push:**
-   ```bash
-   git remote add origin https://github.com/saadxsalman/file-organizer.git
-   git branch -M main
-   git push -u origin main
-
-```

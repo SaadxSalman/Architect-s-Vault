@@ -73,16 +73,3 @@ The app will be running at `http://localhost:3000`.
 ---
 
 Developed by [saadxsalman](https://www.google.com/search?q=https://github.com/saadxsalman)
-
-```
-
----
-
-### 💡 Pro-Tip for your GitHub
-To make this look even better on your profile:
-1. **Add a Screenshot:** Take a screenshot of the Tailwind UI and save it as `screenshot.png` in your repo, then add `![Preview](./screenshot.png)` to the top of the README.
-2. **License:** You might want to add a `LICENSE` file (like MIT) to let others know they can use your code.
-
-Would you like me to help you write the `git` commands to push this entire project to a new GitHub repository?
-
-```

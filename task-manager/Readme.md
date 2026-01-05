@@ -103,7 +103,3 @@ This project is [MIT](https://opensource.org/licenses/MIT) licensed.
 Developed by [saadxsalman](https://www.google.com/search?q=https://github.com/saadxsalman)
 
 ```
-
-Would you like me to help you generate the Git commands to initialize your repository and push this code to GitHub?
-
-```

@@ -78,21 +78,3 @@ This project uses `.gitignore` to ensure that the `.env` file containing your da
 ---
 
 Developed by [saadxsalman](https://www.google.com/search?q=https://github.com/saadxsalman)
-
-```
-
----
-
-### Final Step for your GitHub Repo
-Since you mentioned keeping keys secret, make sure you follow these steps in your terminal before your first push:
-
-1.  **Initialize Git:** `git init`
-2.  **Add Files:** `git add .`
-3.  **Check Status:** `git status` 
-    * *Make sure `.env` is **not** listed in the "Changes to be committed".*
-4.  **Commit:** `git commit -m "Initial commit: Blog CMS ready"`
-5.  **Push:** Create your repo on GitHub and follow their "push an existing repository" instructions.
-
-Would you like me to show you how to add **password protection** to the "Write a Post" section so only you can post?
-
-```
