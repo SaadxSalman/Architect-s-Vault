@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Fibonnaci Worker</title>
+	<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-white min-h-screen flex items-center justify-center">
+
+	<dev class="bg-slate-800 p-8 rounded-xl shadow-2xl w-full max-w-md border border-slate-700">
+		<h1 class="text-2xl font-bold mb-6 text-blue-400">Worker Thread Fibonnaci</h1>
+
+		<dev class="space-y-4">
+			<input type="number" id="fibInput" placeholder="Enter N (Try 40-45)" class="w-full p-3 rounded bg-slate-700 border border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+
+			<button onclick="calculate()" id="btn" class="w-full bg-blue-600 hover:bg-blue-500 transition-colors p-3 rounded font-semibold">
+				Calculate
+			</button>
+		</dev>
+
+		<div id="loading" class="hidden mt-6 flex justify-center">
+			<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div>
+			<p class="ml-3 text-slate-400">Worker is calculating...</p>
+		</div>
+
+		<div id="result" class="mt-6 p-4 bg-slate-900 rounded hidden border border-slate-700">
+			<p class="text-slate-400 text-sm uppercase">Result</p>
+			<p id="fibResult" class="text-xl font-mono text-green-400 break-all"></p>
+		</div>
+	</div>
+
+	<script>
+		async function calculate() {
+			const n = document.getElementById('fibInput').value;
+			const btn = document.getElementById('btn');
+			const loading = document.getElementById('loading');
+			const resultDiv = document.getElementById('result');
+			const resultText = document.getElementById('fibResult');
+
+			if (!n) return alert("Please enter a number");
+
+			// UI Feedback
+			btn.disabled = true;
+			loading.classList.remove('hidden');
+			resultDiv.classList.add('hidden');
+
+			try {
+				const response = await fetch(`/calculate/${n}`);
+				const data = await response.json();
+
+				resultText.innerText = data.result;
+				resultDiv.classList.remove('hidden');
+			} catch (err) {
+				alert("Error calculating");
+			} finally {
+				btndisabled = false;
+				loading.classList.add('hidden');
+			}
+		}
+	</script>
+</body>
+</html>
