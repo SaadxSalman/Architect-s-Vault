@@ -1,81 +1,64 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Octokit } from "octokit";
 import { GoogleGenAI } from "@google/genai";
-import crypto from "crypto";
 
+// Debug: Let's log these to make sure they exist
 const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 export async function POST(req: NextRequest) {
+  console.log("🚀 TRIGGERED: Webhook hit the endpoint!");
+
   try {
-    const rawBody = await req.text();
-    const signature = req.headers.get("x-hub-signature-256");
-
-    // 1. Security: Signature Verification
-    const hmac = crypto.createHmac("sha256", process.env.WEBHOOK_SECRET || "");
-    const digest = Buffer.from("sha256=" + hmac.update(rawBody).digest("hex"), "utf8");
-    const checksum = Buffer.from(signature || "", "utf8");
-
-    if (checksum.length !== digest.length || !crypto.timingSafeEqual(digest, checksum)) {
-      console.error("❌ Invalid Signature");
-      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+    const payload = await req.json();
+    
+    // Check if this is actually a PR event
+    if (!payload.pull_request) {
+      console.log("⚠️ Not a PR event (likely a ping or push).");
+      return NextResponse.json({ message: "Not a PR" });
     }
 
-    const payload = JSON.parse(rawBody);
+    const owner = payload.repository.owner.login;
+    const repo = payload.repository.name;
+    const pull_number = payload.pull_request.number;
 
-    // 2. Handle GitHub Ping
-    if (req.headers.get("x-github-event") === "ping") {
-      console.log("✅ GitHub Ping Received!");
-      return NextResponse.json({ message: "pong" });
-    }
+    console.log(`🔎 Target: ${owner}/${repo} PR #${pull_number}`);
 
-    // 3. PR Review Logic
-    if (payload.pull_request && (payload.action === "opened" || payload.action === "synchronize")) {
-      const owner = payload.repository.owner.login;
-      const repo = payload.repository.name;
-      const pull_number = payload.pull_request.number;
+    // 1. Fetch Diff
+    const { data: diff } = await octokit.rest.pulls.get({
+      owner,
+      repo,
+      pull_number,
+      headers: { accept: "application/vnd.github.v3.diff" },
+    });
 
-      console.log(`🚀 Processing PR #${pull_number} for ${owner}/${repo}`);
+    console.log("🤖 Calling Gemini 3 Flash...");
 
-      // Fetch the Diff
-      const { data: diff } = await octokit.rest.pulls.get({
-        owner,
-        repo,
-        pull_number,
-        headers: { accept: "application/vnd.github.v3.diff" },
-      });
+    // 2. Call Gemini
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: [{ role: "user", parts: [{ text: "Review this briefly:\n\n" + diff }] }],
+    });
 
-      const diffContent = diff as unknown as string;
-      const truncatedDiff = diffContent.slice(0, 15000);
+    console.log("✍️ AI Response received. Posting to GitHub...");
 
-      // 4. Gemini 3 Flash Implementation (Matching your Documentation)
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: [
-          {
-            role: "user",
-            parts: [{ text: `You are a senior reviewer for @saadxsalman. Review this diff and give 3-5 technical improvements:\n\n${truncatedDiff}` }]
-          }
-        ],
-      });
+    // 3. Post Comment
+    const githubResponse = await octokit.rest.issues.createComment({
+      owner,
+      repo,
+      issue_number: pull_number,
+      body: `### 🤖 AI Code Review\n\n${response.text}`
+    });
 
-      const reviewText = response.text;
+    console.log("✅ SUCCESS: Comment posted at " + githubResponse.data.html_url);
+    return NextResponse.json({ success: true });
 
-      // 5. Post to GitHub
-      await octokit.rest.issues.createComment({
-        owner,
-        repo,
-        issue_number: pull_number,
-        body: `## 🤖 AI Code Review (Gemini 3 Flash)\n\n${reviewText}\n\n---\n*Bot for @saadxsalman*`
-      });
-
-      console.log("✅ Review Comment Posted successfully!");
-      return NextResponse.json({ status: "success" });
-    }
-
-    return NextResponse.json({ status: "event ignored" });
   } catch (error: any) {
-    console.error("🧪 Webhook Error Detail:", error);
+    console.error("❌ ERROR LOG:", error.message);
+    // This will tell us if the Token is the problem
+    if (error.status === 401 || error.status === 403) {
+      console.error("🔑 AUTH ERROR: Check your GITHUB_TOKEN permissions!");
+    }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
