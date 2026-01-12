@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-com Microservices</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-10">
+    <div class="max-w-2xl mx-auto">
+        <h1 class="text-3xl font-bold text-blue-600 mb-6">Microservices Dashboard</h1>
+        
+        <div class="grid grid-cols-2 gap-4">
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="font-bold border-b mb-2">User Service</h2>
+                <button onclick="fetchUser()" class="bg-blue-500 text-white px-4 py-2 rounded">Fetch User 1</button>
+                <pre id="userData" class="mt-2 text-sm text-gray-600"></pre>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="font-bold border-b mb-2">Product Service</h2>
+                <button onclick="fetchProducts()" class="bg-green-500 text-white px-4 py-2 rounded">List Products</button>
+                <ul id="productList" class="mt-2 text-sm text-gray-600 list-disc pl-5"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const GATEWAY = 'http://localhost:3000';
+
+        async function fetchUser() {
+            const res = await fetch(`${GATEWAY}/users/profile/1`);
+            const data = await res.json();
+            document.getElementById('userData').innerText = JSON.stringify(data, null, 2);
+        }
+
+        async function fetchProducts() {
+            const res = await fetch(`${GATEWAY}/products`);
+            const data = await res.json();
+            const list = document.getElementById('productList');
+            list.innerHTML = data.map(p => `<li>${p.name} - $${p.price}</li>`).join('');
+        }
+    </script>
+</body>
+</html>
