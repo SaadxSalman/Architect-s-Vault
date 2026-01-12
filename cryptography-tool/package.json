@@ -16,6 +16,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/crypto-js": "^4.2.2",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
