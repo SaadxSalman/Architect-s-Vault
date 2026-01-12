@@ -1,26 +1,38 @@
 {
   "name": "ecommerce-microservices",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Microservices-based E-commerce API with Gateway",
+  "main": "gateway/index.ts",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start:gateway": "ts-node-dev --respawn --transpile-only gateway/index.ts",
+    "start:user": "ts-node-dev --respawn --transpile-only user-service/index.ts",
+    "start:product": "ts-node-dev --respawn --transpile-only product-service/index.ts",
+    "start:order": "ts-node-dev --respawn --transpile-only order-service/index.ts",
+    "services:all": "concurrently \"npm run start:gateway\" \"npm run start:user\" \"npm run start:product\" \"npm run start:order\""
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "nodejs",
+    "microservices",
+    "typescript",
+    "ecommerce"
+  ],
+  "author": "saadxsalman",
   "license": "ISC",
-  "type": "commonjs",
-  "devDependencies": {
-    "@types/express": "^5.0.6",
-    "@types/node": "^25.0.6",
-    "nodemon": "^3.1.11",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
-  },
   "dependencies": {
-    "axios": "^1.13.2",
+    "axios": "^1.6.0",
     "cors": "^2.8.5",
-    "dotenv": "^17.2.3",
-    "express": "^5.2.1"
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/node": "^20.10.0",
+    "concurrently": "^8.2.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.3.2"
   }
 }
