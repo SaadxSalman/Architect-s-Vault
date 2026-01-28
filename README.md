@@ -48,8 +48,8 @@ This repository is designed for those who learn by analyzing and breaking real c
 ## 📬 Connect
 
 * **GitHub:** [@saadxsalman](https://github.com/saadxsalman)
-* **LinkedIn:** [Saad Salman](https://linkedin.com/in/saad-salman-36a52427a/)
-* **Hugging Face:** [SaadSalman7](https://huggingface.co/SaadSalman7)
+* **LinkedIn:** [Saad Salman](https://linkedin.com/in/saadxsalman)
+* **Hugging Face:** [SaadSalman7](https://huggingface.co/saadxsalman)
 
 ---
 
