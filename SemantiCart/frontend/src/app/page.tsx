@@ -1,7 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Search, Sparkles, Filter, Package, RefreshCw } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { 
+  Search, 
+  Sparkles, 
+  X, 
+  Loader2, 
+  ArrowRight, 
+  Zap, 
+  RefreshCw, 
+  Package, 
+  Filter 
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
 import type { AppRouter } from '../../../backend/src/index';
 
@@ -18,19 +29,18 @@ export default function Home() {
   // --- State Management ---
   const [query, setQuery] = useState('');
   const [products, setProducts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('');
-  const [activeCategory, setActiveCategory] = useState('All');
+  const [recommendation, setRecommendation] = useState<{ product: any, reason: string } | null>(null);
 
-  const categories = ['All', 'Electronics', 'Footwear', 'Apparel', 'Accessories'];
+  const intents = ["Summer Wedding", "Gym Session", "Office Professional", "Weekend Hike"];
 
   // --- Actions ---
 
-  // Initial Fetch: Load all products on mount
-  const fetchProducts = async () => {
+  // Initial Fetch: Load catalog on mount
+  const fetchInitialProducts = async () => {
     setLoading(true);
     try {
-      // Note: Using getProducts for the initial catalog view
       const data = await trpc.getProducts.query();
       setProducts(data);
     } catch (err) {
@@ -41,152 +51,220 @@ export default function Home() {
   };
 
   useEffect(() => {
-    fetchProducts();
+    fetchInitialProducts();
   }, []);
 
-  // AI Semantic Search
-  const handleSemanticSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!query.trim()) {
-      fetchProducts(); // Reset to full list if query is empty
+  // AI Semantic Search Logic
+  const performSearch = useCallback(async (searchQuery: string) => {
+    if (!searchQuery.trim()) {
+      fetchInitialProducts();
       return;
     }
+
     setLoading(true);
     try {
-      const results = await trpc.search.query({ query });
-      setProducts(results);
+      const data = await trpc.search.query({ query: searchQuery });
+      setProducts(data);
+      
+      // Contextual AI Recommendation logic
+      if (data.length > 0) {
+        const rec = await trpc.recommend.query({ productId: data[0].id });
+        setRecommendation({ 
+          product: rec.recommendedProduct, 
+          reason: rec.reason || "Matches your current search vibe." 
+        });
+      }
     } catch (err) {
       console.error("Search failed:", err);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Debounce Effect
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      if (query.length >= 3) {
+        performSearch(query);
+      } else if (query.length === 0) {
+        setProducts([]);
+        setRecommendation(null);
+        fetchInitialProducts();
+      }
+    }, 600);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [query, performSearch]);
 
   // Admin: Sync Embeddings
   const handleSync = async () => {
-    setStatus('Syncing with AI...');
+    setStatus('Syncing...');
     try {
       const result = await trpc.syncProducts.mutate();
       setStatus(result.message);
-      setTimeout(() => setStatus(''), 5000); // Clear status after 5s
-      fetchProducts(); 
+      setTimeout(() => setStatus(''), 5000);
+      fetchInitialProducts(); 
     } catch (err) {
-      setStatus('Error syncing.');
+      setStatus('Sync Error');
       console.error(err);
     }
   };
 
+  const clearSearch = () => {
+    setQuery('');
+    setRecommendation(null);
+    fetchInitialProducts();
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50/50">
-      {/* Hero Section */}
-      <section className="bg-gradient-to-br from-blue-700 to-indigo-900 pt-20 pb-32 px-4 text-center text-white relative">
-        <div className="absolute top-4 right-4">
-            <button 
-              onClick={handleSync}
-              className="flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 px-4 py-2 rounded-full text-xs transition"
-            >
-              <RefreshCw className={`w-3 h-3 ${status.includes('Syncing') ? 'animate-spin' : ''}`} />
-              {status || 'Sync AI Embeddings'}
-            </button>
+    <div className="min-h-screen bg-gray-50/50 pb-20">
+      {/* Hero & Intent Section */}
+      <section className="bg-slate-950 pt-20 pb-28 px-4 text-center text-white relative overflow-hidden">
+        {/* Admin Sync Button */}
+        <div className="absolute top-4 right-4 z-20">
+          <button 
+            onClick={handleSync}
+            className="flex items-center gap-2 bg-white/5 hover:bg-white/10 backdrop-blur-md border border-white/10 px-4 py-2 rounded-full text-xs transition"
+          >
+            <RefreshCw className={`w-3 h-3 ${status.includes('Syncing') ? 'animate-spin' : ''}`} />
+            {status || 'Sync AI Engine'}
+          </button>
         </div>
 
-        <h2 className="text-5xl font-extrabold mb-4 tracking-tight">Find exactly what you mean.</h2>
-        <p className="text-blue-100 text-lg max-w-2xl mx-auto mb-10">
-          Saadxsalman's AI-powered semantic search understands context, not just keywords. 
-          Try searching for <span className="italic opacity-80">"something for a rainy morning run."</span>
+        <motion.h2 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-4xl md:text-6xl font-black mb-6 tracking-tighter"
+        >
+          SHOP BY <span className="text-blue-500">INTENT</span>
+        </motion.h2>
+        
+        <p className="text-slate-400 text-lg max-w-2xl mx-auto mb-10">
+          Saadxsalman's AI understands context. Search for a feeling, not just a product.
         </p>
 
-        {/* Semantic Search Bar */}
-        <form onSubmit={handleSemanticSearch} className="max-w-3xl mx-auto relative">
-          <div className="relative flex items-center">
-            <Search className="absolute left-4 text-gray-400 w-5 h-5" />
+        <div className="max-w-3xl mx-auto">
+          {/* Search Bar */}
+          <div className="relative group">
+            <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors">
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
+            </div>
             <input 
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Describe what you are looking for..."
-              className="w-full py-4 pl-12 pr-32 rounded-2xl text-gray-900 shadow-2xl focus:ring-4 focus:ring-blue-400/50 outline-none"
+              placeholder="Describe your vibe (e.g. 'something for a rainy morning run')"
+              className="w-full bg-slate-900 border border-slate-800 text-white py-5 pl-14 pr-14 rounded-2xl shadow-2xl outline-none focus:border-blue-500 transition-all text-lg"
             />
-            <button 
-              type="submit"
-              className="absolute right-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 transition"
-            >
-              <Sparkles className="w-4 h-4" /> Search
-            </button>
+            {query && (
+              <button onClick={clearSearch} className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            )}
           </div>
-        </form>
-      </section>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 -mt-10 mb-20">
-        <div className="bg-white rounded-3xl shadow-xl p-8">
-          
-          {/* Traditional Category Filter */}
-          <div className="flex items-center gap-4 mb-8 overflow-x-auto pb-2 scrollbar-hide">
-            <div className="flex items-center gap-2 text-gray-500 mr-4 border-r pr-4">
-              <Filter className="w-4 h-4" />
-              <span className="text-sm font-semibold uppercase tracking-wider">Filter</span>
-            </div>
-            {categories.map(cat => (
-              <button
-                key={cat}
-                onClick={() => setActiveCategory(cat)}
-                className={`px-5 py-1.5 rounded-full text-sm font-medium transition whitespace-nowrap ${
-                  activeCategory === cat ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
+          {/* Quick Intent Chips */}
+          <div className="flex flex-wrap justify-center gap-2 mt-6">
+            <span className="text-slate-500 text-sm font-medium mr-2 self-center">Try:</span>
+            {intents.map(intent => (
+              <button 
+                key={intent}
+                onClick={() => setQuery(intent)}
+                className="px-4 py-1.5 rounded-full border border-slate-800 text-slate-400 text-xs font-bold hover:bg-slate-800 hover:text-white transition"
               >
-                {cat}
+                {intent}
               </button>
             ))}
           </div>
+        </div>
+      </section>
 
-          {/* Product Grid */}
-          {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-               {[1, 2, 3, 4, 5, 6].map(i => (
-                 <div key={i} className="animate-pulse">
-                    <div className="aspect-square bg-gray-100 rounded-2xl mb-4" />
-                    <div className="h-4 bg-gray-100 rounded w-3/4 mb-2" />
-                    <div className="h-4 bg-gray-100 rounded w-1/2" />
-                 </div>
-               ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {products.length > 0 ? (
-                products.map((product) => (
-                  <div key={product.id} className="group cursor-pointer">
-                    <div className="relative aspect-square bg-gray-50 rounded-2xl overflow-hidden mb-4 border border-gray-100 transition group-hover:shadow-lg group-hover:border-blue-100">
-                      {/* Only show Match % if it's a search result (similarity exists) */}
-                      {product.similarity !== undefined && (
-                        <div className="absolute top-3 right-3 bg-white/90 backdrop-blur px-2 py-1 rounded-lg text-xs font-bold text-blue-600 flex items-center gap-1 shadow-sm border border-blue-100 z-10">
-                          <Sparkles className="w-3 h-3" /> {Math.round(product.similarity * 100)}% Match
-                        </div>
-                      )}
-                      
-                      {/* Placeholder for Product Image */}
-                      <div className="w-full h-full flex items-center justify-center text-gray-300 group-hover:scale-110 transition-transform duration-500">
-                        <Package className="w-16 h-16" />
-                      </div>
+      {/* Results & Recommendation Grid */}
+      <div className="max-w-7xl mx-auto px-4 -mt-10">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          
+          {/* Main Product List */}
+          <div className="lg:col-span-3 space-y-6">
+            <AnimatePresence mode='popLayout'>
+              {loading && products.length === 0 ? (
+                // Skeleton Loading State
+                [1, 2, 3].map(i => (
+                  <div key={i} className="bg-white p-6 rounded-3xl h-48 animate-pulse border border-slate-100" />
+                ))
+              ) : products.length > 0 ? (
+                products.map((product, idx) => (
+                  <motion.div
+                    key={product.id}
+                    layout
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ delay: idx * 0.05 }}
+                    className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex flex-col md:flex-row gap-6 hover:shadow-xl transition-shadow group"
+                  >
+                    <div className="w-full md:w-48 aspect-square bg-slate-50 rounded-2xl flex items-center justify-center overflow-hidden">
+                      <Package className="w-12 h-12 text-slate-200 group-hover:scale-110 transition-transform duration-500" />
                     </div>
                     
-                    <h3 className="font-bold text-lg group-hover:text-blue-600 transition truncate">{product.name}</h3>
-                    <p className="text-gray-500 text-sm line-clamp-2 mb-3 min-h-[40px]">{product.description}</p>
-                    <div className="flex justify-between items-center">
-                      <p className="font-bold text-xl text-gray-900">${product.price}</p>
-                      <button className="text-xs font-semibold text-blue-600 hover:underline">View Details</button>
+                    <div className="flex-1">
+                      <div className="flex justify-between items-start">
+                        <h3 className="text-xl font-bold group-hover:text-blue-600 transition">{product.name}</h3>
+                        {product.similarity !== undefined && (
+                          <span className="text-blue-600 bg-blue-50 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
+                            <Sparkles className="w-3 h-3" /> {Math.round(product.similarity * 100)}% Match
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-slate-500 mt-2 line-clamp-2">{product.description}</p>
+                      
+                      <div className="mt-8 flex items-center justify-between">
+                        <span className="text-2xl font-black text-slate-900">${product.price}</span>
+                        <button className="bg-slate-900 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-600 transition">
+                          View Details <ArrowRight className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  </motion.div>
                 ))
               ) : (
-                <div className="col-span-full py-20 text-center">
-                  <Package className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900">No products found</h3>
-                  <p className="text-gray-500">Try adjusting your search or category filters.</p>
+                <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-slate-200">
+                  <Package className="w-12 h-12 text-slate-200 mx-auto mb-4" />
+                  <p className="text-slate-500 font-medium">No direct matches found.</p>
+                  <p className="text-slate-400 text-sm">Try searching for something like "Minimalist Style".</p>
                 </div>
               )}
-            </div>
-          )}
+            </AnimatePresence>
+          </div>
+
+          {/* Sidebar Recommendation */}
+          <div className="lg:col-span-1">
+            <AnimatePresence>
+              {recommendation && (
+                <motion.div 
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  className="bg-blue-600 p-6 rounded-3xl text-white sticky top-10 shadow-2xl shadow-blue-200"
+                >
+                  <div className="flex items-center gap-2 mb-4">
+                    <Zap className="w-5 h-5 fill-white" />
+                    <span className="text-xs font-bold uppercase tracking-widest">AI Top Pick</span>
+                  </div>
+                  <h4 className="font-bold text-lg leading-tight mb-2">Perfect for your search</h4>
+                  <p className="text-blue-100 text-sm italic mb-6">"{recommendation.reason}"</p>
+                  
+                  <div className="bg-white/10 p-4 rounded-2xl border border-white/20 backdrop-blur-sm">
+                    <p className="font-bold text-sm">{recommendation.product.name}</p>
+                    <p className="text-xs text-blue-200 mt-1">${recommendation.product.price}</p>
+                    <button className="w-full mt-4 bg-white text-blue-600 py-2 rounded-lg text-xs font-bold hover:bg-blue-50 transition">
+                      Quick Add
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+          
         </div>
       </div>
     </div>
