@@ -1,11 +1,17 @@
 @import "tailwindcss";
 
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-rgb: 255, 255, 255;
+  /* Updated to hex values for easier maintenance */
+  --background: #f8fafc;
+  --foreground: #0f172a;
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: rgb(var(--background-rgb));
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+/* Custom utility for the hero section */
+.hero-gradient {
+  background: radial-gradient(circle at top left, #3b82f6 0%, #1d4ed8 100%);
 }
