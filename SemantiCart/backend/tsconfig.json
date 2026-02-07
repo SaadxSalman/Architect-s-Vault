@@ -22,15 +22,18 @@
     "exactOptionalPropertyTypes": true,
 
     /* Recommended Options */
-    "esModuleInterop": true,
+    "esModuleInterop": true, 
     "forceConsistentCasingInFileNames": true,
-    "verbatimModuleSyntax": true,
+    /* CHANGE: Set to false or remove. 
+       When true, it ignores esModuleInterop and breaks CJS imports like Express.
+    */
+    "verbatimModuleSyntax": false, 
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
     "skipLibCheck": true,
     
-    /* Frontend Compatibility (if needed for tRPC shared types) */
+    /* Frontend Compatibility */
     "jsx": "react-jsx"
   },
   "include": ["src/**/*"],
