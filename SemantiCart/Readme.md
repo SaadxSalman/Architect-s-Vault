@@ -111,27 +111,29 @@ Saad Salman - [@saadxsalman](https://www.google.com/url?sa=E&source=gmail&q=http
 # File Structure
 
 ```text
-/saadxsalman-project
+/SemantiCart
 ├── /backend
-│   ├── .env
-│   ├── .gitignore
+│   ├── .env                       # API Keys (OpenAI, Supabase, Stripe)
+│   ├── .gitignore                 # node_modules, .env, dist
 │   ├── package.json
 │   ├── tsconfig.json
 │   └── src/
-│       ├── index.ts
-│       ├── context.ts
-│       └── router.ts
+│       └── index.ts               # COMPLETE logic (Express, tRPC, AI, Stripe Webhook)
 ├── /frontend
-│   ├── .env.local
-│   ├── .gitignore
+│   ├── .env.local                 # Public Supabase & Stripe keys
+│   ├── .gitignore                 # node_modules, .next
 │   ├── package.json
 │   ├── next.config.ts
 │   ├── tailwind.config.ts
+│   ├── tsconfig.json
 │   └── src/
+│       ├── utils/
+│       │   └── supabase.ts        # createClient export
+│       ├── components/
+│       │   └── RealTimeListener.tsx # Real-time stock logic
 │       └── app/
-│           ├── layout.tsx
-│           ├── page.tsx
-│           └── globals.css
-└── .gitignore (root)
-
+│           ├── globals.css        # Tailwind & Custom Styles
+│           ├── layout.tsx         # Navbar, Footer, Providers
+│           └── page.tsx           # Hero, Semantic Search, Cart, Auth UI
+└── README.md                      # Professional documentation
 ```

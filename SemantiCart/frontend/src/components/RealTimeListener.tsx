@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { createClient } from "@/utils/supabase/client"; // Adjust path to your supabase client
+import { createClient } from "@/utils/supabase"; // Adjust path to your supabase client
 
 export default function RealTimeListener() {
   useEffect(() => {
