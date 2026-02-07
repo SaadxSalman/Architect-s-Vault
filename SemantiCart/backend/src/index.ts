@@ -5,6 +5,7 @@ import { createExpressMiddleware } from '@trpc/server/adapters/express';
 import { initTRPC, TRPCError } from '@trpc/server';
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
+import Stripe from 'stripe';
 import * as dotenv from 'dotenv';
 import { z } from 'zod';
 
@@ -20,8 +21,11 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// --- 2. Tools & Utilities ---
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { 
+  apiVersion: '2023-10-16' 
+});
 
+// --- 2. Tools & Utilities ---
 const embeddingCache: Record<string, number[]> = {};
 
 async function getVector(text: string): Promise<number[]> {
@@ -56,17 +60,7 @@ async function getVector(text: string): Promise<number[]> {
   }
 }
 
-const validateApiKey = (req: Request, res: Response, next: NextFunction) => {
-  const apiKey = req.headers['x-api-key'];
-  if (apiKey !== process.env.INTERNAL_API_KEY) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-  next();
-};
-
 // --- 3. tRPC Initialization ---
-
-// Define Context Type
 interface Context {
   user?: { id: string };
 }
@@ -75,7 +69,6 @@ const t = initTRPC.context<Context>().create();
 
 const appRouter = t.router({
   // --- HEALTH & MAINTENANCE ---
-  
   healthCheck: t.procedure.query(async () => {
     const { data, error } = await supabase.from('products').select('id', { count: 'exact', head: true });
     if (error) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: error.message });
@@ -113,7 +106,6 @@ const appRouter = t.router({
   }),
 
   // --- AI FEATURES ---
-
   search: t.procedure
     .input(z.object({ query: z.string() }))
     .query(async ({ input }) => {
@@ -165,20 +157,12 @@ const appRouter = t.router({
       };
     }),
 
-  generateSingleEmbedding: t.procedure
-    .input(z.object({ text: z.string() }))
-    .mutation(async ({ input }) => {
-      return await getVector(input.text);
-    }),
-
-  // --- CART FUNCTIONALITY ---
-
+  // --- CART & CHECKOUT ---
   addToCart: t.procedure
     .input(z.object({ productId: z.string(), quantity: z.number() }))
     .mutation(async ({ input, ctx }) => {
       if (!ctx.user) throw new TRPCError({ code: 'UNAUTHORIZED' });
 
-      // 1. Check Stock first
       const { data: product } = await supabase
         .from('products')
         .select('stock_quantity')
@@ -189,7 +173,6 @@ const appRouter = t.router({
         throw new TRPCError({ code: 'CONFLICT', message: 'Item out of stock' });
       }
 
-      // 2. Upsert into cart
       const { error } = await supabase.from('cart_items').upsert({
         user_id: ctx.user.id,
         product_id: input.productId,
@@ -197,7 +180,6 @@ const appRouter = t.router({
       });
 
       if (error) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: error.message });
-
       return { success: true };
     }),
 
@@ -212,14 +194,87 @@ const appRouter = t.router({
     if (error) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: error.message });
     return data;
   }),
+
+  createCheckout: t.procedure
+    .input(z.array(z.object({ id: z.string(), quantity: z.number() })))
+    .mutation(async ({ input }) => {
+      // 1. Fetch real prices from Supabase
+      const { data: products } = await supabase
+        .from('products')
+        .select('*')
+        .in('id', input.map(i => i.id));
+
+      if (!products) throw new TRPCError({ code: 'NOT_FOUND', message: "Products not found" });
+
+      const lineItems = input.map(item => {
+        const product = products.find(p => p.id === item.id);
+        if (!product) throw new TRPCError({ code: 'BAD_REQUEST', message: `Product ${item.id} not found` });
+        
+        return {
+          price_data: {
+            currency: 'usd',
+            product_data: { 
+                name: product.name, 
+                images: product.image_url ? [product.image_url] : [] 
+            },
+            unit_amount: Math.round(product.price * 100),
+          },
+          quantity: item.quantity,
+        };
+      });
+
+      // 2. Create Stripe Session
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: lineItems,
+        mode: 'payment',
+        success_url: `${process.env.FRONTEND_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.FRONTEND_URL}/canceled`,
+      });
+
+      return { url: session.url };
+    }),
 });
 
 export type AppRouter = typeof appRouter;
 
 // --- 4. Server Execution ---
 const app = express();
-
 app.use(cors());
+
+// --- STRIPE WEBHOOK HANDLER ---
+// Must be defined BEFORE express.json() for raw body access
+app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  const sig = req.headers['stripe-signature']!;
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
+  } catch (err: any) {
+    console.error(`Webhook Error: ${err.message}`);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object as Stripe.Checkout.Session;
+    
+    // 1. Update Order Status in Supabase
+    const { error } = await supabase.from('orders').insert({
+      stripe_session_id: session.id,
+      total_amount: session.amount_total! / 100,
+      status: 'completed'
+    });
+
+    if (error) console.error("Supabase Order Insert Error:", error);
+    
+    // 2. Logic for Stock Reduction would go here
+    console.log("💰 Payment Success! Order recorded.");
+  }
+
+  res.json({ received: true });
+});
+
+// Regular JSON parsing for all other routes
 app.use(express.json());
 
 app.use(
@@ -227,8 +282,6 @@ app.use(
   createExpressMiddleware({
     router: appRouter,
     createContext: ({ req, res }) => {
-      // Logic to extract user from Auth headers would go here
-      // For now, providing a mock user ID for testing
       return {
         user: { id: 'test-user-uuid' } 
       };
@@ -238,6 +291,7 @@ app.use(
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
-  console.log(`🚀 Phase 3 Backend running at http://localhost:${PORT}`);
+  console.log(`🚀 Backend running at http://localhost:${PORT}`);
   console.log(`🔗 tRPC endpoint: http://localhost:${PORT}/trpc`);
+  console.log(`🔔 Webhook endpoint: http://localhost:${PORT}/api/webhook`);
 });
