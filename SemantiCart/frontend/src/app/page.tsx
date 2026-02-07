@@ -17,7 +17,11 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
+import { loadStripe } from '@stripe/stripe-js';
 import type { AppRouter } from '../../../backend/src/index';
+
+// Initialize Stripe
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 // tRPC Client initialization
 const trpc = createTRPCProxyClient<AppRouter>({
@@ -40,11 +44,39 @@ export default function Home() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [cart, setCart] = useState<any[]>([]);
 
+  // Check for URL params for Success Page
+  const isSuccess = typeof window !== 'undefined' && window.location.search.includes('success');
+
   const intents = ["Summer Wedding", "Gym Session", "Office Professional", "Weekend Hike"];
 
   // --- Calculations ---
   const subtotal = cart.reduce((acc, item) => acc + (item.product.price * item.quantity), 0);
   const tax = subtotal * 0.1;
+
+  // --- Success View ---
+  if (isSuccess) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen text-center p-10 bg-white">
+        <motion.div 
+          initial={{ scale: 0 }} 
+          animate={{ scale: 1 }} 
+          className="bg-green-100 p-6 rounded-full mb-6"
+        >
+          <Sparkles className="text-green-600 w-12 h-12" />
+        </motion.div>
+        <h1 className="text-4xl font-black tracking-tighter">PAYMENT SUCCESSFUL!</h1>
+        <p className="text-gray-500 mt-4 max-w-md">
+          Your semantic style is on the way, **saadxsalman**. Check your email for a receipt and tracking details.
+        </p>
+        <button 
+          onClick={() => window.location.href = '/'} 
+          className="mt-8 bg-black text-white px-8 py-4 rounded-2xl font-bold hover:bg-blue-600 transition shadow-lg"
+        >
+          Continue Shopping
+        </button>
+      </div>
+    );
+  }
 
   // --- Actions ---
 
@@ -102,7 +134,7 @@ export default function Home() {
     return () => clearTimeout(delayDebounceFn);
   }, [query, performSearch]);
 
-  // --- Cart Logic ---
+  // --- Cart & Checkout Logic ---
   const addToCart = (product: any) => {
     setCart(prev => {
       const existing = prev.find(item => item.product.id === product.id);
@@ -128,6 +160,20 @@ export default function Home() {
 
   const removeFromCart = (id: string) => {
     setCart(prev => prev.filter(item => item.product.id !== id));
+  };
+
+  const handleCheckout = async () => {
+    try {
+      setStatus('Redirecting...');
+      const { url } = await trpc.createCheckout.mutate(
+        cart.map(item => ({ id: item.product.id, quantity: item.quantity }))
+      );
+      
+      if (url) window.location.href = url;
+    } catch (err) {
+      alert("Checkout failed. Check stock availability.");
+      setStatus('');
+    }
   };
 
   const handleSync = async () => {
@@ -232,8 +278,12 @@ export default function Home() {
                 <div className="flex justify-between text-xl font-black pt-2 border-t mt-2">
                   <span>Total</span><span>${(subtotal + tax).toFixed(2)}</span>
                 </div>
-                <button className="w-full bg-slate-950 text-white py-4 rounded-2xl font-bold mt-4 hover:bg-blue-600 transition shadow-lg active:scale-[0.98]">
-                  Checkout Now
+                <button 
+                  onClick={handleCheckout}
+                  disabled={cart.length === 0 || status === 'Redirecting...'}
+                  className="w-full bg-slate-950 text-white py-4 rounded-2xl font-bold mt-4 hover:bg-blue-600 transition shadow-lg active:scale-[0.98] disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  {status === 'Redirecting...' ? 'Connecting to Stripe...' : 'Checkout Now'}
                 </button>
               </div>
             </motion.div>
@@ -262,7 +312,7 @@ export default function Home() {
         </motion.h2>
         
         <p className="text-slate-400 text-lg max-w-2xl mx-auto mb-10">
-          Saadxsalman's AI understands context. Search for a feeling, not just a product.
+          AI understands context. Search for a feeling, not just a product.
         </p>
 
         <div className="max-w-3xl mx-auto">
