@@ -105,6 +105,29 @@ const appRouter = t.router({
     return { message: `Synced ${updates.length} products.` };
   }),
 
+  // --- ADMIN & MANAGEMENT ---
+  addProduct: t.procedure
+    .input(z.object({ name: z.string(), description: z.string(), price: z.number() }))
+    .mutation(async ({ input }) => {
+      // AI generates tags and category automatically
+      const aiResponse = await openai.chat.completions.create({
+        model: "gpt-3.5-turbo",
+        messages: [{ role: "system", content: "Categorize this product and give 3 tags: " + input.name }],
+      });
+      
+      // Using existing getVector utility
+      const embedding = await getVector(`${input.name} ${input.description}`);
+      
+      const { data, error } = await supabase.from('products').insert({
+        ...input,
+        embedding,
+        category: aiResponse.choices[0].message.content
+      }).select().single();
+
+      if (error) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: error.message });
+      return data;
+    }),
+
   // --- AI FEATURES ---
   search: t.procedure
     .input(z.object({ query: z.string() }))
@@ -157,6 +180,27 @@ const appRouter = t.router({
       };
     }),
 
+  getReviewSummary: t.procedure
+    .input(z.object({ productId: z.string() }))
+    .query(async ({ input }) => {
+      const { data: reviews, error } = await supabase
+        .from('reviews')
+        .select('content')
+        .eq('product_id', input.productId);
+
+      if (error) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: error.message });
+      if (!reviews || reviews.length === 0) return "No reviews available to summarize.";
+
+      const allText = reviews.map(r => r.content).join(". ");
+
+      const summary = await openai.chat.completions.create({
+        model: "gpt-3.5-turbo",
+        messages: [{ role: "user", content: `Summarize these reviews into a 2-bullet list (Pros/Cons): ${allText}` }],
+      });
+
+      return summary.choices[0].message.content;
+    }),
+
   // --- CART & CHECKOUT ---
   addToCart: t.procedure
     .input(z.object({ productId: z.string(), quantity: z.number() }))
@@ -198,7 +242,6 @@ const appRouter = t.router({
   createCheckout: t.procedure
     .input(z.array(z.object({ id: z.string(), quantity: z.number() })))
     .mutation(async ({ input }) => {
-      // 1. Fetch real prices from Supabase
       const { data: products } = await supabase
         .from('products')
         .select('*')
@@ -223,7 +266,6 @@ const appRouter = t.router({
         };
       });
 
-      // 2. Create Stripe Session
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
         line_items: lineItems,
@@ -243,7 +285,6 @@ const app = express();
 app.use(cors());
 
 // --- STRIPE WEBHOOK HANDLER ---
-// Must be defined BEFORE express.json() for raw body access
 app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   const sig = req.headers['stripe-signature']!;
   let event;
@@ -258,7 +299,6 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session;
     
-    // 1. Update Order Status in Supabase
     const { error } = await supabase.from('orders').insert({
       stripe_session_id: session.id,
       total_amount: session.amount_total! / 100,
@@ -266,15 +306,12 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, 
     });
 
     if (error) console.error("Supabase Order Insert Error:", error);
-    
-    // 2. Logic for Stock Reduction would go here
     console.log("💰 Payment Success! Order recorded.");
   }
 
   res.json({ received: true });
 });
 
-// Regular JSON parsing for all other routes
 app.use(express.json());
 
 app.use(
@@ -292,6 +329,4 @@ app.use(
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`🚀 Backend running at http://localhost:${PORT}`);
-  console.log(`🔗 tRPC endpoint: http://localhost:${PORT}/trpc`);
-  console.log(`🔔 Webhook endpoint: http://localhost:${PORT}/api/webhook`);
 });
