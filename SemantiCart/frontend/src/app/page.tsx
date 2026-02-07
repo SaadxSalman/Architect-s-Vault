@@ -9,8 +9,11 @@ import {
   ArrowRight, 
   Zap, 
   RefreshCw, 
-  Package, 
-  Filter 
+  Package,
+  ShoppingCart,
+  Plus,
+  Minus,
+  Trash2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
@@ -32,12 +35,19 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('');
   const [recommendation, setRecommendation] = useState<{ product: any, reason: string } | null>(null);
+  
+  // Cart State
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [cart, setCart] = useState<any[]>([]);
 
   const intents = ["Summer Wedding", "Gym Session", "Office Professional", "Weekend Hike"];
 
+  // --- Calculations ---
+  const subtotal = cart.reduce((acc, item) => acc + (item.product.price * item.quantity), 0);
+  const tax = subtotal * 0.1;
+
   // --- Actions ---
 
-  // Initial Fetch: Load catalog on mount
   const fetchInitialProducts = async () => {
     setLoading(true);
     try {
@@ -54,7 +64,6 @@ export default function Home() {
     fetchInitialProducts();
   }, []);
 
-  // AI Semantic Search Logic
   const performSearch = useCallback(async (searchQuery: string) => {
     if (!searchQuery.trim()) {
       fetchInitialProducts();
@@ -66,7 +75,6 @@ export default function Home() {
       const data = await trpc.search.query({ query: searchQuery });
       setProducts(data);
       
-      // Contextual AI Recommendation logic
       if (data.length > 0) {
         const rec = await trpc.recommend.query({ productId: data[0].id });
         setRecommendation({ 
@@ -81,13 +89,11 @@ export default function Home() {
     }
   }, []);
 
-  // Debounce Effect
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       if (query.length >= 3) {
         performSearch(query);
       } else if (query.length === 0) {
-        setProducts([]);
         setRecommendation(null);
         fetchInitialProducts();
       }
@@ -96,7 +102,34 @@ export default function Home() {
     return () => clearTimeout(delayDebounceFn);
   }, [query, performSearch]);
 
-  // Admin: Sync Embeddings
+  // --- Cart Logic ---
+  const addToCart = (product: any) => {
+    setCart(prev => {
+      const existing = prev.find(item => item.product.id === product.id);
+      if (existing) {
+        return prev.map(item => 
+          item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+        );
+      }
+      return [...prev, { product, quantity: 1 }];
+    });
+    setIsCartOpen(true);
+  };
+
+  const updateQuantity = (id: string, delta: number) => {
+    setCart(prev => prev.map(item => {
+      if (item.product.id === id) {
+        const newQty = Math.max(1, item.quantity + delta);
+        return { ...item, quantity: newQty };
+      }
+      return item;
+    }));
+  };
+
+  const removeFromCart = (id: string) => {
+    setCart(prev => prev.filter(item => item.product.id !== id));
+  };
+
   const handleSync = async () => {
     setStatus('Syncing...');
     try {
@@ -110,17 +143,106 @@ export default function Home() {
     }
   };
 
-  const clearSearch = () => {
-    setQuery('');
-    setRecommendation(null);
-    fetchInitialProducts();
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50/50 pb-20">
+    <div className="min-h-screen bg-gray-50/50 pb-20 relative">
+      
+      {/* Floating Cart Trigger */}
+      <button 
+        onClick={() => setIsCartOpen(true)}
+        className="fixed bottom-8 right-8 bg-blue-600 text-white p-4 rounded-full shadow-2xl z-40 hover:scale-110 active:scale-95 transition-all"
+      >
+        <ShoppingCart />
+        {cart.length > 0 && (
+          <span className="absolute -top-1 -right-1 bg-red-500 text-[10px] font-bold px-2 py-1 rounded-full border-2 border-white">
+            {cart.reduce((sum, item) => sum + item.quantity, 0)}
+          </span>
+        )}
+      </button>
+
+      {/* Side Cart Drawer */}
+      <AnimatePresence>
+        {isCartOpen && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setIsCartOpen(false)}
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
+            />
+            <motion.div 
+              initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed right-0 top-0 h-full w-full max-w-md bg-white z-[60] shadow-2xl p-6 flex flex-col"
+            >
+              <div className="flex justify-between items-center mb-8">
+                <h2 className="text-2xl font-black tracking-tighter">YOUR CART</h2>
+                <button onClick={() => setIsCartOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition">
+                  <X />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
+                {cart.length === 0 ? (
+                  <div className="text-center mt-20">
+                    <Package className="w-12 h-12 text-gray-200 mx-auto mb-4" />
+                    <p className="text-gray-400">Your cart is empty.</p>
+                  </div>
+                ) : (
+                  cart.map((item) => (
+                    <motion.div layout key={item.product.id} className="flex gap-4 p-3 bg-gray-50 rounded-2xl border border-gray-100">
+                      <div className="w-20 h-20 bg-gray-200 rounded-xl flex items-center justify-center">
+                        <Package className="text-gray-400 w-8 h-8" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-bold text-sm leading-tight">{item.product.name}</h4>
+                        <p className="text-blue-600 font-bold mt-1">${item.product.price}</p>
+                        <div className="flex items-center gap-3 mt-3">
+                          <button 
+                            onClick={() => updateQuantity(item.product.id, -1)}
+                            className="p-1 border bg-white rounded-md hover:bg-gray-100"
+                          >
+                            <Minus size={14}/>
+                          </button>
+                          <span className="text-sm font-bold w-4 text-center">{item.quantity}</span>
+                          <button 
+                            onClick={() => updateQuantity(item.product.id, 1)}
+                            className="p-1 border bg-white rounded-md hover:bg-gray-100"
+                          >
+                            <Plus size={14}/>
+                          </button>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => removeFromCart(item.product.id)}
+                        className="text-gray-300 hover:text-red-500 self-start p-1 transition"
+                      >
+                        <Trash2 size={18}/>
+                      </button>
+                    </motion.div>
+                  ))
+                )}
+              </div>
+
+              <div className="border-t pt-6 space-y-2 mt-4">
+                <div className="flex justify-between text-gray-500 text-sm">
+                  <span>Subtotal</span><span>${subtotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-gray-500 text-sm">
+                  <span>Tax (10%)</span><span>${tax.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-xl font-black pt-2 border-t mt-2">
+                  <span>Total</span><span>${(subtotal + tax).toFixed(2)}</span>
+                </div>
+                <button className="w-full bg-slate-950 text-white py-4 rounded-2xl font-bold mt-4 hover:bg-blue-600 transition shadow-lg active:scale-[0.98]">
+                  Checkout Now
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       {/* Hero & Intent Section */}
       <section className="bg-slate-950 pt-20 pb-28 px-4 text-center text-white relative overflow-hidden">
-        {/* Admin Sync Button */}
         <div className="absolute top-4 right-4 z-20">
           <button 
             onClick={handleSync}
@@ -144,7 +266,6 @@ export default function Home() {
         </p>
 
         <div className="max-w-3xl mx-auto">
-          {/* Search Bar */}
           <div className="relative group">
             <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors">
               {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
@@ -157,13 +278,12 @@ export default function Home() {
               className="w-full bg-slate-900 border border-slate-800 text-white py-5 pl-14 pr-14 rounded-2xl shadow-2xl outline-none focus:border-blue-500 transition-all text-lg"
             />
             {query && (
-              <button onClick={clearSearch} className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white">
+              <button onClick={() => setQuery('')} className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             )}
           </div>
 
-          {/* Quick Intent Chips */}
           <div className="flex flex-wrap justify-center gap-2 mt-6">
             <span className="text-slate-500 text-sm font-medium mr-2 self-center">Try:</span>
             {intents.map(intent => (
@@ -183,11 +303,9 @@ export default function Home() {
       <div className="max-w-7xl mx-auto px-4 -mt-10">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           
-          {/* Main Product List */}
           <div className="lg:col-span-3 space-y-6">
             <AnimatePresence mode='popLayout'>
               {loading && products.length === 0 ? (
-                // Skeleton Loading State
                 [1, 2, 3].map(i => (
                   <div key={i} className="bg-white p-6 rounded-3xl h-48 animate-pulse border border-slate-100" />
                 ))
@@ -219,8 +337,11 @@ export default function Home() {
                       
                       <div className="mt-8 flex items-center justify-between">
                         <span className="text-2xl font-black text-slate-900">${product.price}</span>
-                        <button className="bg-slate-900 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-600 transition">
-                          View Details <ArrowRight className="w-4 h-4" />
+                        <button 
+                          onClick={() => addToCart(product)}
+                          className="bg-slate-900 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-600 transition"
+                        >
+                          Add to Cart <Plus className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
@@ -230,13 +351,11 @@ export default function Home() {
                 <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-slate-200">
                   <Package className="w-12 h-12 text-slate-200 mx-auto mb-4" />
                   <p className="text-slate-500 font-medium">No direct matches found.</p>
-                  <p className="text-slate-400 text-sm">Try searching for something like "Minimalist Style".</p>
                 </div>
               )}
             </AnimatePresence>
           </div>
 
-          {/* Sidebar Recommendation */}
           <div className="lg:col-span-1">
             <AnimatePresence>
               {recommendation && (
@@ -256,7 +375,10 @@ export default function Home() {
                   <div className="bg-white/10 p-4 rounded-2xl border border-white/20 backdrop-blur-sm">
                     <p className="font-bold text-sm">{recommendation.product.name}</p>
                     <p className="text-xs text-blue-200 mt-1">${recommendation.product.price}</p>
-                    <button className="w-full mt-4 bg-white text-blue-600 py-2 rounded-lg text-xs font-bold hover:bg-blue-50 transition">
+                    <button 
+                      onClick={() => addToCart(recommendation.product)}
+                      className="w-full mt-4 bg-white text-blue-600 py-2 rounded-lg text-xs font-bold hover:bg-blue-50 transition"
+                    >
                       Quick Add
                     </button>
                   </div>

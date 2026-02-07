@@ -22,17 +22,11 @@ const openai = new OpenAI({
 
 // --- 2. Tools & Utilities ---
 
-// Simple In-Memory Cache to save on OpenAI API costs
 const embeddingCache: Record<string, number[]> = {};
 
-/**
- * Enhanced Embedding Helper:
- * Includes caching, logging, and error handling for OpenAI.
- */
 async function getVector(text: string): Promise<number[]> {
   const cleanText = text.toLowerCase().trim();
   
-  // Check cache first
   if (embeddingCache[cleanText]) {
     console.log(`[CACHE HIT] Using existing embedding for: "${cleanText}"`);
     return embeddingCache[cleanText];
@@ -46,7 +40,7 @@ async function getVector(text: string): Promise<number[]> {
     });
 
     const vector = response.data[0].embedding;
-    embeddingCache[cleanText] = vector; // Save to cache
+    embeddingCache[cleanText] = vector;
     return vector;
   } catch (error: any) {
     if (error.status === 429) {
@@ -62,9 +56,6 @@ async function getVector(text: string): Promise<number[]> {
   }
 }
 
-/**
- * Security Middleware: Validates Internal API Key
- */
 const validateApiKey = (req: Request, res: Response, next: NextFunction) => {
   const apiKey = req.headers['x-api-key'];
   if (apiKey !== process.env.INTERNAL_API_KEY) {
@@ -74,7 +65,13 @@ const validateApiKey = (req: Request, res: Response, next: NextFunction) => {
 };
 
 // --- 3. tRPC Initialization ---
-const t = initTRPC.create();
+
+// Define Context Type
+interface Context {
+  user?: { id: string };
+}
+
+const t = initTRPC.context<Context>().create();
 
 const appRouter = t.router({
   // --- HEALTH & MAINTENANCE ---
@@ -91,7 +88,6 @@ const appRouter = t.router({
     return data;
   }),
 
-  // Sync Script: Finds products missing embeddings and populates them
   syncProducts: t.procedure.mutation(async () => {
     const { data: products, error } = await supabase
       .from('products')
@@ -118,7 +114,6 @@ const appRouter = t.router({
 
   // --- AI FEATURES ---
 
-  // SEMANTIC SEARCH: Uses pgvector via Supabase RPC
   search: t.procedure
     .input(z.object({ query: z.string() }))
     .query(async ({ input }) => {
@@ -134,11 +129,9 @@ const appRouter = t.router({
       return data;
     }),
 
-  // CONTEXTUAL RECOMMENDER: Finds similar items and explains why
   recommend: t.procedure
     .input(z.object({ productId: z.string() }))
     .query(async ({ input }) => {
-      // 1. Get the source product
       const { data: product } = await supabase
         .from('products')
         .select('*')
@@ -148,18 +141,15 @@ const appRouter = t.router({
       if (!product) throw new TRPCError({ code: 'NOT_FOUND' });
       if (!product.embedding) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Product missing embedding' });
 
-      // 2. Find similar products using the existing vector
       const { data: neighbors } = await supabase.rpc('match_products', {
         query_embedding: product.embedding,
         match_threshold: 0.3,
         match_count: 2,
       });
 
-      // Filter out the current product from recommendations
       const recommendation = neighbors?.find((n: any) => n.id !== product.id);
       if (!recommendation) return { message: "No recommendations found" };
 
-      // 3. AI Explanation
       const prompt = `Product A: ${product.name} (${product.description})
       Product B: ${recommendation.name} (${recommendation.description})
       Explain in one short sentence why someone buying A might like B.`;
@@ -180,6 +170,48 @@ const appRouter = t.router({
     .mutation(async ({ input }) => {
       return await getVector(input.text);
     }),
+
+  // --- CART FUNCTIONALITY ---
+
+  addToCart: t.procedure
+    .input(z.object({ productId: z.string(), quantity: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      if (!ctx.user) throw new TRPCError({ code: 'UNAUTHORIZED' });
+
+      // 1. Check Stock first
+      const { data: product } = await supabase
+        .from('products')
+        .select('stock_quantity')
+        .eq('id', input.productId)
+        .single();
+
+      if (!product || product.stock_quantity < input.quantity) {
+        throw new TRPCError({ code: 'CONFLICT', message: 'Item out of stock' });
+      }
+
+      // 2. Upsert into cart
+      const { error } = await supabase.from('cart_items').upsert({
+        user_id: ctx.user.id,
+        product_id: input.productId,
+        quantity: input.quantity
+      });
+
+      if (error) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: error.message });
+
+      return { success: true };
+    }),
+
+  getCart: t.procedure.query(async ({ ctx }) => {
+    if (!ctx.user) throw new TRPCError({ code: 'UNAUTHORIZED' });
+
+    const { data, error } = await supabase
+      .from('cart_items')
+      .select('*, products(*)')
+      .eq('user_id', ctx.user.id);
+
+    if (error) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: error.message });
+    return data;
+  }),
 });
 
 export type AppRouter = typeof appRouter;
@@ -190,14 +222,17 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Security: Optional - Uncomment to protect all routes
-// app.use(validateApiKey); 
-
 app.use(
   '/trpc',
   createExpressMiddleware({
     router: appRouter,
-    createContext: () => ({}), 
+    createContext: ({ req, res }) => {
+      // Logic to extract user from Auth headers would go here
+      // For now, providing a mock user ID for testing
+      return {
+        user: { id: 'test-user-uuid' } 
+      };
+    }, 
   })
 );
 
