@@ -6,13 +6,13 @@ import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
 import type { AppRouter } from '../../../backend/src/index';
 
 // Component Imports
-import { SuccessScreen } from './page_components/SuccessScreen';
-import { ThemeAdminToggles } from './page_components/ThemeAdminToggles';
-import { CartDrawer } from './page_components/CartDrawer';
-import { HeroSearch } from './page_components/HeroSearch';
-import { AdminPanel } from './page_components/AdminPanel';
-import { ProductList } from './page_components/ProductList';
-import { AIRecommendation } from './page_components/AIRecommendation';
+import { SuccessScreen } from '../page_components/SuccessScreen';
+import { ThemeAdminToggles } from '../page_components/ThemeAdminToggles';
+import { CartDrawer } from '../page_components/CartDrawer';
+import { HeroSearch } from '../page_components/HeroSearch';
+import { AdminPanel } from '../page_components/AdminPanel';
+import { ProductList } from '../page_components/ProductList';
+import { AIRecommendation } from '../page_components/AIRecommendation';
 
 const trpc = createTRPCProxyClient<AppRouter>({
   links: [httpBatchLink({ url: 'http://localhost:4000/trpc' })],
