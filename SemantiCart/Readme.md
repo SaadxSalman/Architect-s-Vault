@@ -42,18 +42,34 @@ Leverages **Supabase Realtime** (WebSockets) to update stock counts and availabi
 
 ---
 
-## 🛠️ Project Structure
+# File Structure
 
 ```text
-/saadxsalman-project
-├── /backend            # Express + tRPC + AI Logic
-│   ├── src/index.ts    # Main Orchestrator
-│   └── .env            # Stripe/OpenAI/Supabase Secrets
-├── /frontend           # Next.js + Tailwind
-│   ├── src/app/        # layout.tsx, page.tsx, globals.css
-│   └── .env.local      # Public Keys
-└── .gitignore          # Root security
-
+/SemantiCart
+├── /backend
+│   ├── .env                       # API Keys (OpenAI, Supabase, Stripe)
+│   ├── .gitignore                 # node_modules, .env, dist
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── src/
+│       └── index.ts               # COMPLETE logic (Express, tRPC, AI, Stripe Webhook)
+├── /frontend
+│   ├── .env.local                 # Public Supabase & Stripe keys
+│   ├── .gitignore                 # node_modules, .next
+│   ├── package.json
+│   ├── next.config.ts
+│   ├── tailwind.config.ts
+│   ├── tsconfig.json
+│   └── src/
+│       ├── utils/
+│       │   └── supabase.ts        # createClient export
+│       ├── components/
+│       │   └── RealTimeListener.tsx # Real-time stock logic
+│       └── app/
+│           ├── globals.css        # Tailwind & Custom Styles
+│           ├── layout.tsx         # Navbar, Footer, Providers
+│           └── page.tsx           # Hero, Semantic Search, Cart, Auth UI
+└── README.md                      # Professional documentation
 ```
 
 ---
@@ -108,32 +124,3 @@ Distributed under the MIT License. See `LICENSE` for more information.
 Saad Salman - [@saadxsalman](https://www.google.com/url?sa=E&source=gmail&q=https://github.com/saadxsalman)
 
 
-# File Structure
-
-```text
-/SemantiCart
-├── /backend
-│   ├── .env                       # API Keys (OpenAI, Supabase, Stripe)
-│   ├── .gitignore                 # node_modules, .env, dist
-│   ├── package.json
-│   ├── tsconfig.json
-│   └── src/
-│       └── index.ts               # COMPLETE logic (Express, tRPC, AI, Stripe Webhook)
-├── /frontend
-│   ├── .env.local                 # Public Supabase & Stripe keys
-│   ├── .gitignore                 # node_modules, .next
-│   ├── package.json
-│   ├── next.config.ts
-│   ├── tailwind.config.ts
-│   ├── tsconfig.json
-│   └── src/
-│       ├── utils/
-│       │   └── supabase.ts        # createClient export
-│       ├── components/
-│       │   └── RealTimeListener.tsx # Real-time stock logic
-│       └── app/
-│           ├── globals.css        # Tailwind & Custom Styles
-│           ├── layout.tsx         # Navbar, Footer, Providers
-│           └── page.tsx           # Hero, Semantic Search, Cart, Auth UI
-└── README.md                      # Professional documentation
-```
