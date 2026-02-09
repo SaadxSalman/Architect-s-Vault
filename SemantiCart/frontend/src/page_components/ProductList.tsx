@@ -8,11 +8,16 @@ interface Props {
 }
 
 export const ProductList = ({ products, loading, addToCart }: Props) => (
-  // Changed to Grid: 1 col on mobile, 2 cols on desktop
-  <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-8 pt-12 mt-4 pb-20"> 
+  /* Dynamic Grid Logic:
+     - 1 col on Mobile
+     - 2 cols on Small/Med Tablets (sm/md)
+     - 3 cols on Desktops (lg)
+     - 4 cols on Ultra-wide/Large Screens (xl)
+  */
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pt-12 mt-4 pb-20 w-full"> 
     <AnimatePresence mode='popLayout'>
       {loading && products.length === 0 ? (
-        [1, 2, 3, 4].map(i => (
+        [1, 2, 3, 4, 5, 6].map(i => (
           <div 
             key={i} 
             className="bg-white/40 dark:bg-slate-900/40 backdrop-blur-md p-6 rounded-[2.5rem] h-80 animate-pulse border border-slate-200/50 dark:border-slate-800/50" 
@@ -36,11 +41,11 @@ export const ProductList = ({ products, loading, addToCart }: Props) => (
             <div className="absolute inset-0 bg-gradient-to-br from-slate-200 via-transparent to-slate-200 dark:from-slate-800 dark:via-transparent dark:to-slate-700 opacity-100 group-hover:from-blue-600 group-hover:to-cyan-400 transition-all duration-700" />
             
             <div className="relative flex flex-col h-full p-6 bg-white dark:bg-slate-950 rounded-[2.5rem]">
-              {/* Image Container - Full width for the card */}
-              <div className="relative w-full aspect-video mb-6 bg-slate-50 dark:bg-slate-900 rounded-[2rem] flex items-center justify-center overflow-hidden border border-slate-100 dark:border-white/5">
+              {/* Image Container */}
+              <div className="relative w-full aspect-square mb-6 bg-slate-50 dark:bg-slate-900 rounded-[2rem] flex items-center justify-center overflow-hidden border border-slate-100 dark:border-white/5">
                 <Package className="w-16 h-16 text-slate-200 dark:text-slate-800 group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-700 ease-out" />
                 
-                {/* Match Badge - Overlaid on image for better space usage */}
+                {/* Match Badge */}
                 {product.similarity !== undefined && (
                   <div className="absolute top-4 right-4 flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-blue-500/20 shadow-sm">
                     <Sparkles className="w-3 h-3 text-blue-500 fill-blue-500/20" />
@@ -56,31 +61,30 @@ export const ProductList = ({ products, loading, addToCart }: Props) => (
               {/* Product Info */}
               <div className="flex-1 flex flex-col">
                 <div className="space-y-2">
-                  <h3 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white group-hover:text-blue-500 transition-colors line-clamp-1">
+                  <h3 className="text-lg font-bold tracking-tight text-slate-900 dark:text-white group-hover:text-blue-500 transition-colors line-clamp-1">
                     {product.name}
                   </h3>
                   <div className="h-0.5 w-8 bg-blue-500 rounded-full scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500" />
                   
-                  <p className="text-slate-500 dark:text-slate-400 mt-3 leading-relaxed line-clamp-2 text-sm">
+                  <p className="text-slate-500 dark:text-slate-400 mt-3 leading-relaxed line-clamp-2 text-xs">
                     {product.description}
                   </p>
                 </div>
 
-                {/* Bottom Row: Price and Button */}
-                <div className="mt-8 pt-6 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
+                {/* Bottom Row */}
+                <div className="mt-auto pt-6 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
                   <div>
                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-0.5">Price</p>
-                    <span className="text-2xl font-black text-slate-900 dark:text-white tabular-nums tracking-tighter">
+                    <span className="text-xl font-black text-slate-900 dark:text-white tabular-nums tracking-tighter">
                       ${product.price}
                     </span>
                   </div>
 
                   <button 
                     onClick={() => addToCart(product)} 
-                    className="group/btn relative h-12 w-12 flex items-center justify-center rounded-xl bg-slate-900 dark:bg-blue-600 overflow-hidden transition-all active:scale-95 shadow-lg shadow-blue-500/10 md:w-auto md:px-6"
+                    className="group/btn relative h-10 w-10 flex items-center justify-center rounded-xl bg-slate-900 dark:bg-blue-600 overflow-hidden transition-all active:scale-95 shadow-lg shadow-blue-500/10"
                   >
                     <div className="relative z-10 flex items-center gap-2 text-white font-bold">
-                      <span className="hidden md:inline text-sm">Add</span>
                       <Plus className="w-5 h-5 group-hover/btn:rotate-90 transition-transform duration-300" />
                     </div>
                     <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-cyan-500 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300" />

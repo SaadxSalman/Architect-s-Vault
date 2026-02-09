@@ -118,12 +118,21 @@ export default function Home() {
 
       <HeroSearch query={query} setQuery={setQuery} loading={loading} handleSync={handleSync} status={status} intents={intents} />
 
-      <div className="max-w-7xl mx-auto px-4 -mt-10">
+      <div className="max-w-[1600px] mx-auto px-4 -mt-10">
         <AdminPanel isAdmin={isAdmin} />
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          <ProductList products={products} loading={loading} addToCart={addToCart} />
-          <AIRecommendation recommendation={recommendation} addToCart={addToCart} />
+        {/* Dynamic Layout Wrapper */}
+        <div className="flex flex-col lg:flex-row gap-8">
+          <div className="flex-grow">
+             <ProductList products={products} loading={loading} addToCart={addToCart} />
+          </div>
+          
+          {/* Recommendation Sidebar - sticky or top-level */}
+          {recommendation && (
+            <div className="lg:w-80 flex-shrink-0 pt-16">
+               <AIRecommendation recommendation={recommendation} addToCart={addToCart} />
+            </div>
+          )}
         </div>
 
         <section className="mt-20">
