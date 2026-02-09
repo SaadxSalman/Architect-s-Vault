@@ -1,25 +1,101 @@
 @import "tailwindcss";
 
+@theme {
+  /* Adding custom animations for that futuristic feel */
+  --animate-pulse-slow: pulse 6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
 :root {
-  /* Light Mode Colors */
-  --background: #f8fafc; /* Slate 50 */
-  --foreground: #0f172a; /* Slate 900 */
+  /* Light Mode - Crisp & Airy */
+  --background: #ffffff;
+  --foreground: #020617;
+  --card: #f8fafc;
+  --border: #e2e8f0;
+  --primary: #3b82f6;
+  --accent: #8b5cf6; /* Electric Violet */
+  
+  /* Glassmorphism Props */
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.3);
 }
 
-/* This is the magic part for your toggle button */
 .dark {
-  --background: #020617; /* Slate 950 */
-  --foreground: #f8fafc; /* Slate 50 */
+  /* Dark Mode - Deep Space & Neon */
+  --background: #030712; /* Richer than Slate 950 */
+  --foreground: #f9fafb;
+  --card: #111827;
+  --border: #1f2937;
+  --primary: #60a5fa;
+  --accent: #a78bfa;
+
+  /* Glassmorphism Props */
+  --glass-bg: rgba(3, 7, 18, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.1);
 }
 
-body {
-  background-color: var(--background);
-  color: var(--foreground);
-  /* Smooth transition so the eyes don't hurt when toggling */
-  transition: background-color 0.3s ease, color 0.3s ease;
+@layer base {
+  * {
+    @apply border-[var(--border)];
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11"; /* Inter font optimizations */
+    transition: background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1), color 0.5s ease;
+    min-height: 100vh;
+    /* Subtle mesh background for texture */
+    background-image: 
+      radial-gradient(at 0% 0%, hsla(220, 100%, 50%, 0.05) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, hsla(260, 100%, 50%, 0.05) 0px, transparent 50%);
+  }
 }
 
-/* Custom utility for the hero section */
-.hero-gradient {
-  background: radial-gradient(circle at top left, #3b82f6 0%, #1d4ed8 100%);
+@layer components {
+  /* Futuristic "Glass" effect for cards/navs */
+  .glass-panel {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+  }
+
+  /* Updated Hero: Now a moving Mesh Gradient */
+  .hero-gradient {
+    position: relative;
+    overflow: hidden;
+    background: var(--background);
+  }
+
+  .hero-gradient::before {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at center, var(--primary) 0%, transparent 20%),
+                radial-gradient(circle at 20% 30%, var(--accent) 0%, transparent 25%);
+    opacity: 0.15;
+    filter: blur(60px);
+    animation: pulse-slow 10s infinite alternate;
+    z-index: -1;
+  }
+
+  /* Futuristic button glow */
+  .btn-glow {
+    transition: all 0.3s ease;
+    box-shadow: 0 0 0px var(--primary);
+  }
+
+  .btn-glow:hover {
+    box-shadow: 0 0 20px -5px var(--primary);
+    transform: translateY(-1px);
+  }
+}
+
+@keyframes pulse-slow {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(5%, 5%) scale(1.1); }
 }
