@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer"; 
+import Footer from "@/components/Footer";
 import RealTimeListener from "@/components/RealTimeListener";
 import "./globals.css";
 
@@ -18,8 +18,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    // Added suppressHydrationWarning to handle browser extension attribute injection
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en">
       <body className={`${inter.className} antialiased`}>
         {/* Handles the real-time Supabase subscriptions */}
         <RealTimeListener />
