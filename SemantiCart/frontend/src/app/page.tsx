@@ -10,7 +10,6 @@ import { SuccessScreen } from '../page_components/SuccessScreen';
 import { ThemeAdminToggles } from '../page_components/ThemeAdminToggles';
 import { CartDrawer } from '../page_components/CartDrawer';
 import { HeroSearch } from '../page_components/HeroSearch';
-import { AdminPanel } from '../page_components/AdminPanel';
 import { ProductList } from '../page_components/ProductList';
 import { AIRecommendation } from '../page_components/AIRecommendation';
 
@@ -27,7 +26,6 @@ export default function Home() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [cart, setCart] = useState<any[]>([]);
   const [darkMode, setDarkMode] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
 
   const isSuccess = typeof window !== 'undefined' && window.location.search.includes('success');
   const intents = ["Summer Wedding", "Gym Session", "Office Professional", "Weekend Hike"];
@@ -107,7 +105,8 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50/50 dark:bg-slate-950 dark:text-white transition-colors pb-20 relative">
-      <ThemeAdminToggles darkMode={darkMode} setDarkMode={setDarkMode} isAdmin={isAdmin} setIsAdmin={setIsAdmin} />
+      {/* Updated Theme Toggles (Admin props removed) */}
+      <ThemeAdminToggles darkMode={darkMode} setDarkMode={setDarkMode} />
 
       <button onClick={() => setIsCartOpen(true)} className="fixed bottom-8 right-8 bg-blue-600 text-white p-4 rounded-full shadow-2xl z-40 hover:scale-110 active:scale-95 transition-all">
         <ShoppingCart />
@@ -119,15 +118,14 @@ export default function Home() {
       <HeroSearch query={query} setQuery={setQuery} loading={loading} handleSync={handleSync} status={status} intents={intents} />
 
       <div className="max-w-[1600px] mx-auto px-4 -mt-10">
-        <AdminPanel isAdmin={isAdmin} />
+        
+        {/* AdminPanel has been removed from here */}
 
-        {/* Dynamic Layout Wrapper */}
         <div className="flex flex-col lg:flex-row gap-8">
           <div className="flex-grow">
              <ProductList products={products} loading={loading} addToCart={addToCart} />
           </div>
           
-          {/* Recommendation Sidebar - sticky or top-level */}
           {recommendation && (
             <div className="lg:w-80 flex-shrink-0 pt-16">
                <AIRecommendation recommendation={recommendation} addToCart={addToCart} />
