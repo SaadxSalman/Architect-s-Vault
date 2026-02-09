@@ -11,8 +11,7 @@ import { ThemeAdminToggles } from '../page_components/ThemeAdminToggles';
 import { CartDrawer } from '../page_components/CartDrawer';
 import { HeroSearch } from '../page_components/HeroSearch';
 import { ProductList } from '../page_components/ProductList';
-// Importing the component (ensure the file export name matches ProductRecommendation)
-import { ProductRecommendation } from '../page_components/AIRecommendation';
+import { Recommendation } from '../page_components/Recommendation';
 
 const trpc = createTRPCProxyClient<AppRouter>({
   links: [httpBatchLink({ url: 'http://localhost:4000/trpc' })],
@@ -160,7 +159,7 @@ export default function Home() {
           
           {recommendation && (
             <div className="lg:w-80 flex-shrink-0 pt-16">
-               <ProductRecommendation recommendation={recommendation} addToCart={addToCart} />
+               <Recommendation recommendation={recommendation} addToCart={addToCart} />
             </div>
           )}
         </div>
