@@ -1,6 +1,0 @@
-node_modules
-.next
-dist
-.env
-*.log
-offline_cache.json
