@@ -1,7 +1,7 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 import { router, publicProcedure } from './trpc';
-import { supabase, stripe } from '../lib/clients';
+import { supabase } from '../lib/clients';
 
 export const appRouter = router({
   /**
@@ -24,7 +24,6 @@ export const appRouter = router({
 
   /**
    * Optimized Traditional Search
-   * Uses Postgres Full Text Search (FTS) for better performance and relevance
    */
   search: publicProcedure
     .input(z.object({ query: z.string() }))
@@ -43,8 +42,7 @@ export const appRouter = router({
     }),
 
   /**
-   * Add Product (Traditional)
-   * No AI categorization; accepts manual category input
+   * Add Product
    */
   addProduct: publicProcedure
     .input(z.object({ 
@@ -67,7 +65,6 @@ export const appRouter = router({
 
   /**
    * Recommendation Logic
-   * Finds products within the same category (excluding the current one)
    */
   recommend: publicProcedure
     .input(z.object({ productId: z.string() }))
@@ -97,7 +94,6 @@ export const appRouter = router({
 
   /**
    * Reviews: Basic Fetch
-   * Returns a plain text list of recent review snippets
    */
   getReviewSummary: publicProcedure
     .input(z.object({ productId: z.string() }))
@@ -116,7 +112,7 @@ export const appRouter = router({
     }),
 
   /**
-   * Cart & Checkout Logic (Untouched by AI removal, kept for functionality)
+   * Cart Logic
    */
   addToCart: publicProcedure
     .input(z.object({ productId: z.string(), quantity: z.number() }))
@@ -153,43 +149,6 @@ export const appRouter = router({
     if (error) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: error.message });
     return data;
   }),
-
-  createCheckout: publicProcedure
-    .input(z.array(z.object({ id: z.string(), quantity: z.number() })))
-    .mutation(async ({ input }) => {
-      const { data: products } = await supabase
-        .from('products')
-        .select('*')
-        .in('id', input.map(i => i.id));
-
-      if (!products) throw new TRPCError({ code: 'NOT_FOUND', message: "Products not found" });
-
-      const lineItems = input.map(item => {
-        const product = products.find(p => p.id === item.id);
-        if (!product) throw new TRPCError({ code: 'BAD_REQUEST', message: `Product ${item.id} not found` });
-        return {
-          price_data: {
-            currency: 'usd',
-            product_data: { 
-              name: product.name, 
-              images: product.image_url ? [product.image_url] : [] 
-            },
-            unit_amount: Math.round(product.price * 100),
-          },
-          quantity: item.quantity,
-        };
-      });
-
-      const session = await stripe.checkout.sessions.create({
-        payment_method_types: ['card'],
-        line_items: lineItems,
-        mode: 'payment',
-        success_url: `${process.env.FRONTEND_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${process.env.FRONTEND_URL}/canceled`,
-      });
-
-      return { url: session.url };
-    }),
 });
 
 export type AppRouter = typeof appRouter;
