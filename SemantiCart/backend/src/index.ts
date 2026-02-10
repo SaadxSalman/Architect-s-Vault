@@ -14,12 +14,13 @@ app.use(
   createExpressMiddleware({
     router: appRouter,
     createContext: () => ({
-      user: { id: 'test-user-uuid' } 
-    }), 
+      user: { id: 'test-user-uuid' }
+    }),
   })
 );
 
 const PORT = process.env.PORT || 4000;
+
 app.listen(PORT, () => {
   console.log(`🚀 Backend running at http://localhost:${PORT}`);
 });
