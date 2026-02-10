@@ -1,6 +1,7 @@
 "use client";
-import { useEffect, useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { useEffect, useState } from "react";
+import { createClient } from "@supabase/supabase-js";
+import { trpc } from "./layout";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -8,62 +9,49 @@ const supabase = createClient(
 );
 
 export default function Dashboard() {
-  const [status, setStatus] = useState('Online');
-  const [logs, setLogs] = useState<any[]>([]);
+  const [status, setStatus] = useState<any>(null);
+  const [dbData, setDbData] = useState<any[]>([]);
 
-  // 1. Hardware Interaction (via Electron Bridge)
-  const handlePrint = async () => {
-    const result = await (window as any).electronAPI.printDocument('Invoice #123');
-    console.log(result);
-  };
-
-  // 2. Real-time Supabase Subscription
   useEffect(() => {
-    const channel = supabase
-      .channel('inventory-updates')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'inventory' }, 
-        payload => setLogs(prev => [payload.new, ...prev]))
-      .subscribe();
+    // 1. Fetch from Local Backend (tRPC over IPC)
+    trpc.getHardwareStatus.query().then(setStatus);
 
-    return () => { supabase.removeChannel(channel); };
+    // 2. Fetch from Supabase (Cloud)
+    supabase.from("inventory").select("*").then(({ data }) => setDbData(data || []));
   }, []);
 
-  return (
-    <main className="flex flex-col h-screen p-8 bg-slate-900 text-white">
-      <header className="flex justify-between items-center mb-10">
-        <h1 className="text-3xl font-bold tracking-tight">System Terminal</h1>
-        <div className="flex items-center gap-2">
-          <span className={`h-3 w-3 rounded-full ${status === 'Online' ? 'bg-green-500' : 'bg-red-500'}`} />
-          <span className="text-sm font-medium uppercase">{status}</span>
-        </div>
-      </header>
+  const handleAction = async () => {
+    // Heavy lifting handled by backend via tRPC
+    await trpc.saveLocalLog.mutate("Transaction started...");
+    alert("Local log saved via Node.js Main Process!");
+  };
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 overflow-hidden">
-        {/* Hardware Control Section */}
-        <section className="bg-slate-800 p-6 rounded-2xl border border-slate-700">
-          <h2 className="text-xl font-semibold mb-4 text-slate-400">Hardware Interface</h2>
-          <div className="flex flex-col gap-4">
-            <button 
-              onClick={handlePrint}
-              className="bg-blue-600 hover:bg-blue-500 py-3 px-6 rounded-lg transition-all active:scale-95"
-            >
-              Print Receipt
-            </button>
-            <button className="bg-slate-700 hover:bg-slate-600 py-3 px-6 rounded-lg transition-all">
-              Trigger Scanner
-            </button>
-          </div>
+  return (
+    <main className="p-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Local Hardware Section */}
+        <section className="p-6 bg-slate-800 rounded-lg shadow-xl">
+          <h2 className="text-lg font-semibold mb-4 text-green-400">Local System (Main Process)</h2>
+          <pre className="bg-black p-4 rounded text-xs">
+            {JSON.stringify(status, null, 2)}
+          </pre>
+          <button 
+            onClick={handleAction}
+            className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded font-medium transition"
+          >
+            Trigger Local Action
+          </button>
         </section>
 
-        {/* Real-time Inventory Feed */}
-        <section className="bg-slate-800 p-6 rounded-2xl border border-slate-700 flex flex-col overflow-hidden">
-          <h2 className="text-xl font-semibold mb-4 text-slate-400">Real-time Inventory</h2>
-          <div className="space-y-3 overflow-y-auto">
-            {logs.map((log, i) => (
-              <div key={i} className="p-3 bg-slate-900 rounded border-l-4 border-blue-500">
-                {log.item_name} - {log.status}
+        {/* Supabase Section */}
+        <section className="p-6 bg-slate-800 rounded-lg shadow-xl">
+          <h2 className="text-lg font-semibold mb-4 text-purple-400">Cloud Data (Supabase)</h2>
+          <div className="space-y-2">
+            {dbData.length > 0 ? dbData.map(item => (
+              <div key={item.id} className="p-2 bg-slate-700 rounded border border-slate-600">
+                {item.name} - Qty: {item.quantity}
               </div>
-            ))}
+            )) : <p className="text-slate-400">No cloud data found.</p>}
           </div>
         </section>
       </div>
