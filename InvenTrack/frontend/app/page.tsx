@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
 import { 
   AlertTriangle, 
   ArrowDownLeft, 
@@ -11,6 +10,9 @@ import {
   BarChart3 
 } from 'lucide-react';
 
+// Supabase Client
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+
 // Layout Components
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -19,10 +21,6 @@ import Footer from '@/components/Footer';
 import StatCard from '../page_components/StatCard';
 import StockBadge from '../page_components/StockBadge';
 
-// --- CONFIGURATION ---
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
-const supabase = (supabaseUrl && supabaseKey) ? createClient(supabaseUrl, supabaseKey) : null;
 const BACKEND_URL = "http://localhost:5000/api";
 
 export default function InventoryDashboard() {
@@ -86,7 +84,7 @@ export default function InventoryDashboard() {
     p.sku.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  if (!supabaseUrl || !supabaseKey) {
+  if (!isSupabaseConfigured) {
     return (
       <div className="flex items-center justify-center min-h-screen text-red-500 font-bold">
         ⚠️ Environment Variables Missing! Check your .env file.
