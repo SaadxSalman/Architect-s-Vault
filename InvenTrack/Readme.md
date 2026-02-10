@@ -102,3 +102,31 @@ InvenTrack handles the math for you:
 ---
 
 Developed with ❤️ by [**saadxsalman**](https://www.google.com/search?q=https://github.com/saadxsalman)
+
+---
+
+# Project Structure
+
+```text
+InvenTrack/
+├── backend/                   # Node.js (Express + TypeScript)
+│   ├── src/
+│   │   ├── server.js          # Main API logic & Express routes
+│   │   └── supabase.js        # Supabase client initialization
+│   ├── package.json           # Backend dependencies & ES Module config
+│   └── tsconfig.json          # TypeScript compiler settings
+├── frontend/                  # Next.js (App Router + Tailwind)
+│   ├── app/
+│   │   ├── layout.tsx         # Root layout, Navbar, and Font setup
+│   │   ├── page.tsx           # Dashboard logic, Search, & UI components
+│   │   └── globals.css        # Tailwind directives & custom styles
+│   ├── public/                # Static assets (logos, icons)
+│   ├── next.config.ts         # Next.js configuration (Env handling)
+│   ├── tailwind.config.ts     # Tailwind CSS theme configuration
+│   ├── postcss.config.js      # CSS processing
+│   └── package.json           # Frontend dependencies
+├── .env                       # SHARED environment variables (Critical!)
+├── .gitignore                 # SHARED git exclusion rules
+└── README.md                  # Documentation (optional)
+
+```
