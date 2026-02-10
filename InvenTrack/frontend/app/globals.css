@@ -6,7 +6,9 @@
   --background-end-rgb: 255, 255, 255;
 }
 
+/* Update to your globals.css */
 body {
-  background: #f8fafc;
+  background: radial-gradient(circle at top left, #f8fafc, #eff6ff);
   color: #1e293b;
+  min-height: 100vh;
 }
