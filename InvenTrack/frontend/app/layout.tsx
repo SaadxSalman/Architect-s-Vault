@@ -1,5 +1,7 @@
+// app/layout.tsx
 import './globals.css';
 import { Inter } from 'next/font/google';
+import Navbar from '@/components/Navbar'; // Adjust path based on your alias
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -12,10 +14,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className={inter.className}>
-        <nav className="bg-blue-600 text-white p-4 shadow-lg">
-          <div className="container mx-auto font-bold text-xl">📦 saasxsalman Inventory</div>
-        </nav>
-        <main className="container mx-auto p-6">{children}</main>
+        <Navbar />
+        <main className="container mx-auto p-6">
+          {children}
+        </main>
       </body>
     </html>
   );
