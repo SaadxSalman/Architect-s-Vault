@@ -1,15 +1,15 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Semantic Reddit Search Scraper",
+  "main": "src/scraper.ts",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "node --loader ts-node/esm src/scraper.ts"
   },
   "keywords": [],
-  "author": "",
+  "author": "saadxsalman",
   "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
     "@supabase/supabase-js": "^2.95.3",
     "dotenv": "^17.2.4",
