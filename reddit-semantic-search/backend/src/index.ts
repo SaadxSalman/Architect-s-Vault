@@ -13,29 +13,39 @@ app.use(express.json());
 
 const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!);
 
-// Automatic Ingestion on Startup
-async function ingestReddit() {
-  console.log("📥 Scraping Reddit...");
-  const response = await fetch('https://www.reddit.com/r/movies/top.json?t=all');
-  const data: any = await response.json();
-  const posts = data.data.children;
-
-  const collection = await setupCollection();
+app.post('/scrape', async (req, res) => {
+  const { url } = req.body;
   
-  for (const post of posts) {
-    const { title, selftext, url } = post.data;
-    const content = `${title}. ${selftext}`;
-    
-    // Save to Supabase for metadata persistence
-    await supabase.from('posts').upsert({ title, url }, { onConflict: 'title' });
+  if (!url) return res.status(400).json({ error: "URL is required" });
 
-    // Insert into Weaviate
-    await collection.data.insert({
-      properties: { content, title, url }
-    });
+  try {
+    console.log(`📥 Scraping from: ${url}`);
+    const response = await fetch(url);
+    const data: any = await response.json();
+    
+    const posts = data.data?.children || [];
+    const collection = await setupCollection();
+    
+    for (const post of posts) {
+      const { title, selftext, url: postUrl } = post.data;
+      const content = `${title}. ${selftext || ""}`;
+      
+      await supabase.from('posts').upsert({ title, url: postUrl }, { onConflict: 'title' });
+
+      await collection.data.insert({
+        properties: { content, title, url: postUrl }
+      });
+    }
+
+    // This will now show in your terminal upon completion
+    console.log("✅ Ingestion Complete"); 
+    
+    res.json({ message: `Successfully scraped ${posts.length} items.` });
+  } catch (error) {
+    console.error("❌ Ingestion Error:", error);
+    res.status(500).json({ error: "Failed to scrape the provided link." });
   }
-  console.log("✅ Ingestion Complete");
-}
+});
 
 app.post('/search', async (req, res) => {
   const { query } = req.body;
@@ -47,7 +57,7 @@ app.post('/search', async (req, res) => {
   const aiRes = await hf.chatCompletion({
     model: "meta-llama/Llama-3.2-3B-Instruct",
     messages: [
-      { role: "system", content: "You are a movie expert. Answer based on these Reddit posts." },
+      { role: "system", content: "You are a helpful assistant. Answer based on the provided context." },
       { role: "user", content: `Context: ${context}\n\nQuestion: ${query}` }
     ],
     max_tokens: 300,
@@ -56,7 +66,6 @@ app.post('/search', async (req, res) => {
   res.json({ answer: aiRes.choices[0].message.content, sources: result.objects });
 });
 
-app.listen(3002, async () => {
+app.listen(3002, () => {
   console.log("🚀 Backend on http://localhost:3002");
-  await ingestReddit(); 
 });
