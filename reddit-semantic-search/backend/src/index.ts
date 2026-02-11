@@ -13,7 +13,7 @@ app.use(express.json());
 
 const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!);
 
-// 1. Fetch all existing collections for the sidebar
+// Fetch all existing collections
 app.get('/collections', async (req, res) => {
   try {
     const list = await client.collections.listAll();
@@ -24,7 +24,7 @@ app.get('/collections', async (req, res) => {
   }
 });
 
-// 2. Dynamic Scrape & Ingest
+// Dynamic Scrape & Ingest
 app.post('/scrape', async (req, res) => {
   const { url } = req.body;
   if (!url) return res.status(400).json({ error: "URL is required" });
@@ -46,16 +46,13 @@ app.post('/scrape', async (req, res) => {
     const rawData: any = await response.json();
     
     let items = [];
-    // Reddit-specific logic
     if (rawData.data?.children) {
       items = rawData.data.children.map((c: any) => ({
         title: c.data.title,
         content: `${c.data.title}. ${c.data.selftext || ""}`,
         url: c.data.url
       }));
-    } 
-    // Generic JSON array logic
-    else if (Array.isArray(rawData)) {
+    } else if (Array.isArray(rawData)) {
       items = rawData.map((item: any) => ({
         title: item.title || item.name || "Untitled",
         content: item.body || item.content || item.description || JSON.stringify(item),
@@ -75,28 +72,36 @@ app.post('/scrape', async (req, res) => {
       collectionName 
     });
   } catch (error) {
-    console.error("❌ Error:", error);
     res.status(500).json({ error: "Failed to process JSON link." });
   }
 });
 
-// 3. Search endpoint
+// Search endpoint with Structured Output Prompt
 app.post('/search', async (req, res) => {
   const { query, collectionName } = req.body;
   if (!collectionName) return res.status(400).json({ error: "No collection selected" });
 
   try {
     const collection = client.collections.get(collectionName);
-    const result = await collection.query.hybrid(query, { limit: 3 });
+    const result = await collection.query.hybrid(query, { limit: 4 });
     const context = result.objects.map(o => o.properties.content).join("\n\n");
 
     const aiRes = await hf.chatCompletion({
       model: "meta-llama/Llama-3.2-3B-Instruct",
       messages: [
-        { role: "system", content: "You are a helpful assistant. Answer based strictly on the context provided." },
+        { 
+          role: "system", 
+          content: `You are a structured research assistant. Format your response using:
+          - ## for main topic headers.
+          - ### for sub-sections.
+          - Bullet points for lists.
+          - **Bold text** for names, dates, or key terms.
+          Keep paragraphs short and use whitespace to ensure readability. 
+          Base your answer strictly on the provided context.` 
+        },
         { role: "user", content: `Context: ${context}\n\nQuestion: ${query}` }
       ],
-      max_tokens: 400,
+      max_tokens: 600,
     });
 
     res.json({ answer: aiRes.choices[0].message.content, sources: result.objects });
