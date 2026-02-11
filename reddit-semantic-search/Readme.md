@@ -42,7 +42,7 @@ cd semantic-reddit-search
 
 
 2. **Environment Variables:**
-Create a `.env` file in the root directory:
+Create a `.env` file in the root directory::
 ```env
 SUPABASE_URL=your_supabase_url
 SUPABASE_ANON_KEY=your_supabase_anon_key
