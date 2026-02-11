@@ -3,12 +3,13 @@ import cors from 'cors';
 import { client } from './weaviateClient.js';
 import { processJsonLink } from './rag_pipeline/ingest.js';
 import { performRAGSearch } from './rag_pipeline/retrieve.js';
+import { saveChatMessage, getChatHistory } from './rag_pipeline/database.js';
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Fetch all existing collections
+// Fetch all existing Weaviate collections
 app.get('/collections', async (req, res) => {
   try {
     const list = await client.collections.listAll();
@@ -16,6 +17,17 @@ app.get('/collections', async (req, res) => {
     res.json({ collections: names });
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch collections" });
+  }
+});
+
+// Fetch all saved chat history from Supabase
+app.get('/chat-history', async (req, res) => {
+  try {
+    const { data, error } = await getChatHistory();
+    if (error) throw error;
+    res.json(data);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -45,18 +57,25 @@ app.post('/scrape', async (req, res) => {
   }
 });
 
-// Search endpoint
+// Search endpoint with History Persistence
 app.post('/search', async (req, res) => {
   const { query, collectionName } = req.body;
   if (!collectionName) return res.status(400).json({ error: "No collection selected" });
 
   try {
+    // 1. Perform the RAG search
     const data = await performRAGSearch(query, collectionName);
+    
+    // 2. Persist the interaction to Supabase
+    await saveChatMessage(collectionName, query, data.answer);
+    
+    // 3. Return results to frontend
     res.json(data);
   } catch (error) {
-    console.error(error);
+    console.error("Search Error:", error);
     res.status(500).json({ error: "Search failed." });
   }
 });
 
-app.listen(3002, () => console.log("🚀 Backend running on port 3002"));
+const PORT = 3002;
+app.listen(PORT, () => console.log(`🚀 Backend running on port ${PORT}`));
