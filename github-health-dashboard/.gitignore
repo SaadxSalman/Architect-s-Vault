@@ -1,0 +1,12 @@
+# Python
+venv/
+__pycache__/
+*.py[cod]
+.env
+db.sqlite3
+
+# Node
+node_modules/
+.next/
+out/
+build/
