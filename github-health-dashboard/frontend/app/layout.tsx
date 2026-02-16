@@ -1,11 +1,15 @@
-import "./globals.css";
+import './globals.css'
+import type { Metadata } from 'next'
 
-export const metadata = { title: "Portfolio Health" };
+export const metadata: Metadata = {
+  title: 'GitHub Health Dashboard',
+  description: 'Analytics for saadxsalman',
+}
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body className="antialiased">{children}</body>
     </html>
-  );
+  )
 }

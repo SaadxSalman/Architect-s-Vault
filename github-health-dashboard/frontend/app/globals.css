@@ -20,6 +20,5 @@
 }
 
 body {
-  background: #050505;
-  color: white;
+  @apply bg-slate-950 text-slate-100 min-h-screen;
 }
