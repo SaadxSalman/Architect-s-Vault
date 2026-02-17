@@ -16,6 +16,11 @@ interface Product {
   reviews: Review[]; 
 }
 
+// Interface to handle quantities in the cart
+interface CartItem extends Product {
+  quantity: number;
+}
+
 interface Order { 
   id: number; 
   product_names: string; 
@@ -26,7 +31,7 @@ interface Order {
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [cart, setCart] = useState<Product[]>([]);
+  const [cart, setCart] = useState<CartItem[]>([]);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   
@@ -102,21 +107,41 @@ export default function Home() {
     }
   };
 
+  // --- Manage Cart Logic ---
   const addToCart = (product: Product) => {
-    setCart([...cart, product]);
+    setCart(prevCart => {
+      const existingItem = prevCart.find(item => item.id === product.id);
+      if (existingItem) {
+        return prevCart.map(item =>
+          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+        );
+      }
+      return [...prevCart, { ...product, quantity: 1 }];
+    });
   };
 
-  // --- ADDED: Remove from Cart Feature ---
-  const removeFromCart = (indexToRemove: number) => {
-    setCart(cart.filter((_, index) => index !== indexToRemove));
+  const decreaseQuantity = (productId: number) => {
+    setCart(prevCart => {
+      const existingItem = prevCart.find(item => item.id === productId);
+      if (existingItem && existingItem.quantity > 1) {
+        return prevCart.map(item =>
+          item.id === productId ? { ...item, quantity: item.quantity - 1 } : item
+        );
+      }
+      return prevCart.filter(item => item.id !== productId);
+    });
+  };
+
+  const removeItemCompletely = (productId: number) => {
+    setCart(prevCart => prevCart.filter(item => item.id !== productId));
   };
 
   const placeOrder = async () => {
     if (!token) return alert("Please login first!");
     if (cart.length === 0) return alert("Your cart is empty!");
 
-    const totalPrice = cart.reduce((acc, item) => acc + parseFloat(item.price), 0);
-    const productNames = cart.map(item => item.name).join(", ");
+    const totalPrice = cart.reduce((acc, item) => acc + (parseFloat(item.price) * item.quantity), 0);
+    const productNames = cart.map(item => `${item.name} (x${item.quantity})`).join(", ");
 
     try {
       const res = await fetch('http://127.0.0.1:8000/api/orders/', {
@@ -141,6 +166,8 @@ export default function Home() {
   const filteredProducts = products.filter(p => 
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const totalItemsInCart = cart.reduce((acc, item) => acc + item.quantity, 0);
 
   return (
     <main className="min-h-screen bg-slate-50 font-sans text-slate-900">
@@ -235,30 +262,53 @@ export default function Home() {
           {/* --- Cart Sidebar --- */}
           <aside className="lg:col-span-1">
             <div className="bg-white p-6 rounded-3xl border border-indigo-50 sticky top-24 shadow-lg">
-              <h2 className="font-bold text-xl mb-4 flex items-center gap-2 text-slate-800">🛒 Cart <span className="bg-indigo-600 text-white px-2 py-0.5 rounded-full text-xs">{cart.length}</span></h2>
+              <h2 className="font-bold text-xl mb-4 flex items-center gap-2 text-slate-800">
+                🛒 Cart <span className="bg-indigo-600 text-white px-2 py-0.5 rounded-full text-xs">{totalItemsInCart}</span>
+              </h2>
               {cart.length === 0 ? (
                 <p className="text-slate-400 text-sm italic py-4">Your cart is empty</p>
               ) : (
                 <>
-                  <div className="space-y-3 max-h-60 overflow-y-auto mb-4 pr-1 custom-scrollbar">
-                    {cart.map((item, i) => (
-                      <div key={i} className="group flex justify-between items-center text-sm py-2 border-b border-slate-50">
-                        <div className="flex flex-col truncate pr-2">
-                            <span className="truncate text-slate-700 font-medium">{item.name}</span>
-                            <span className="font-bold text-indigo-600 text-xs">${item.price}</span>
+                  <div className="space-y-4 max-h-80 overflow-y-auto mb-4 pr-1 custom-scrollbar">
+                    {cart.map((item) => (
+                      <div key={item.id} className="group flex flex-col py-3 border-b border-slate-50">
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex flex-col truncate pr-2">
+                            <span className="truncate text-slate-800 font-bold">{item.name}</span>
+                            <span className="font-medium text-indigo-600 text-xs">${(parseFloat(item.price) * item.quantity).toFixed(2)}</span>
+                          </div>
+                          <button 
+                            onClick={() => removeItemCompletely(item.id)}
+                            className="text-slate-300 hover:text-red-500 transition-colors text-xs"
+                          >
+                            Remove
+                          </button>
                         </div>
-                        <button 
-                          onClick={() => removeFromCart(i)}
-                          className="text-slate-300 hover:text-red-500 transition-colors p-1"
-                          title="Remove item"
-                        >
-                          ✕
-                        </button>
+                        
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center bg-slate-100 rounded-lg p-1">
+                            <button 
+                              onClick={() => decreaseQuantity(item.id)}
+                              className="w-7 h-7 flex items-center justify-center bg-white rounded-md shadow-sm text-slate-600 hover:bg-red-50 hover:text-red-600 transition"
+                            >
+                              -
+                            </button>
+                            <span className="w-8 text-center font-bold text-slate-700 text-sm">{item.quantity}</span>
+                            <button 
+                              onClick={() => addToCart(item)}
+                              className="w-7 h-7 flex items-center justify-center bg-white rounded-md shadow-sm text-slate-600 hover:bg-green-50 hover:text-green-600 transition"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
                   <div className="pt-4 border-t border-dashed">
-                    <p className="text-xl font-black mb-4 text-slate-800">Total: ${cart.reduce((a, b) => a + parseFloat(b.price), 0).toFixed(2)}</p>
+                    <p className="text-xl font-black mb-4 text-slate-800">
+                      Total: ${cart.reduce((a, b) => a + (parseFloat(b.price) * b.quantity), 0).toFixed(2)}
+                    </p>
                     <button 
                       onClick={placeOrder} 
                       className="w-full bg-green-500 text-white py-4 rounded-2xl font-black shadow-lg shadow-green-100 hover:bg-green-600 transition active:scale-95"
