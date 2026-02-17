@@ -1,31 +1,10 @@
 "use client";
 import { useEffect, useState } from 'react';
-
-// --- Interfaces ---
-interface Review { 
-  id: number; 
-  content: string; 
-  rating: number; 
-}
-
-interface Product { 
-  id: number; 
-  name: string; 
-  price: string; 
-  image_url: string; 
-  reviews: Review[]; 
-}
-
-interface CartItem extends Product {
-  quantity: number;
-}
-
-interface Order { 
-  id: number; 
-  product_names: string; 
-  total_price: string; 
-  created_at: string; 
-}
+import { Product, Order, CartItem } from '@/types';
+import Navbar from '@/components/Navbar';
+import ProductCard from '@/components/ProductCard';
+import CartSidebar from '@/components/CartSidebar';
+import Footer from '@/components/Footer';
 
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -34,11 +13,10 @@ export default function Home() {
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   
-  // UI States
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [isLoginMode, setIsLoginMode] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [isLoginMode, setIsLoginMode] = useState(true);
 
   // Form States
   const [username, setUsername] = useState('');
@@ -165,36 +143,16 @@ export default function Home() {
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const totalItemsInCart = cart.reduce((acc, item) => acc + item.quantity, 0);
-
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 font-sans text-slate-900">
-      {/* --- Navbar --- */}
-      <nav className="bg-white/80 border-b sticky top-0 z-40 p-4 backdrop-blur-md shadow-sm">
-        <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <h1 className="text-2xl font-black text-indigo-600 tracking-tighter">SAAD.VAULT</h1>
-          <div className="flex gap-4 items-center">
-            {token ? (
-              <button 
-                onClick={() => { localStorage.clear(); setToken(null); setOrders([]); }} 
-                className="text-red-500 font-bold hover:underline text-sm"
-              >
-                Logout
-              </button>
-            ) : (
-              <button 
-                onClick={() => setShowAuthModal(true)} 
-                className="bg-indigo-600 text-white px-6 py-2 rounded-full font-bold hover:bg-indigo-700 transition text-sm"
-              >
-                Login / Register
-              </button>
-            )}
-          </div>
-        </div>
-      </nav>
+      <Navbar 
+        token={token} 
+        onLogout={() => { localStorage.clear(); setToken(null); setOrders([]); }} 
+        onShowAuth={() => setShowAuthModal(true)} 
+      />
 
       <main className="flex-grow max-w-6xl mx-auto p-6 w-full">
-        {/* --- Search Bar --- */}
+        {/* Search Bar */}
         <div className="relative mb-10 max-w-xl">
           <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xl">🔍</span>
           <input 
@@ -207,7 +165,6 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* --- Product Grid --- */}
           <section className="lg:col-span-3">
             <h2 className="text-2xl font-bold mb-6 text-slate-800">
               {searchQuery ? `Results for "${searchQuery}"` : "Featured Inventory"}
@@ -218,36 +175,12 @@ export default function Home() {
             ) : filteredProducts.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {filteredProducts.map(product => (
-                  <div key={product.id} className="bg-white rounded-3xl border border-slate-100 overflow-hidden flex flex-col group shadow-sm hover:shadow-xl transition-all duration-300">
-                    <div 
-                      className="h-52 bg-slate-100 cursor-pointer overflow-hidden" 
-                      onClick={() => setSelectedProduct(product)}
-                    >
-                      <img 
-                        src={product.image_url || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500"} 
-                        className="w-full h-full object-cover group-hover:scale-110 transition duration-500" 
-                        alt={product.name}
-                      />
-                    </div>
-                    <div className="p-6">
-                      <h3 className="font-bold text-xl text-slate-800">{product.name}</h3>
-                      <p className="text-indigo-600 font-black text-2xl mb-4">${product.price}</p>
-                      <div className="flex gap-2">
-                        <button 
-                          onClick={() => setSelectedProduct(product)} 
-                          className="flex-1 bg-slate-100 text-slate-600 py-3 rounded-xl font-bold hover:bg-slate-200 transition"
-                        >
-                          Details
-                        </button>
-                        <button 
-                          onClick={() => addToCart(product)} 
-                          className="flex-1 bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-indigo-600 transition"
-                        >
-                          Add
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+                  <ProductCard 
+                    key={product.id} 
+                    product={product} 
+                    onSelect={setSelectedProduct} 
+                    onAddToCart={addToCart} 
+                  />
                 ))}
               </div>
             ) : (
@@ -257,45 +190,16 @@ export default function Home() {
             )}
           </section>
 
-          {/* --- Cart Sidebar --- */}
-          <aside className="lg:col-span-1">
-            <div className="bg-white p-6 rounded-3xl border border-indigo-50 sticky top-24 shadow-lg">
-              <h2 className="font-bold text-xl mb-4 flex items-center gap-2 text-slate-800">
-                🛒 Cart <span className="bg-indigo-600 text-white px-2 py-0.5 rounded-full text-xs">{totalItemsInCart}</span>
-              </h2>
-              {cart.length === 0 ? (
-                <p className="text-slate-400 text-sm italic py-4">Your cart is empty</p>
-              ) : (
-                <>
-                  <div className="space-y-4 max-h-80 overflow-y-auto mb-4 pr-1 custom-scrollbar">
-                    {cart.map((item) => (
-                      <div key={item.id} className="group flex flex-col py-3 border-b border-slate-50">
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="flex flex-col truncate pr-2">
-                            <span className="truncate text-slate-800 font-bold">{item.name}</span>
-                            <span className="font-medium text-indigo-600 text-xs">${(parseFloat(item.price) * item.quantity).toFixed(2)}</span>
-                          </div>
-                          <button onClick={() => removeItemCompletely(item.id)} className="text-slate-300 hover:text-red-500 transition-colors text-xs">Remove</button>
-                        </div>
-                        <div className="flex items-center bg-slate-100 rounded-lg p-1 w-fit">
-                          <button onClick={() => decreaseQuantity(item.id)} className="w-7 h-7 flex items-center justify-center bg-white rounded-md shadow-sm text-slate-600 hover:bg-red-50 transition">-</button>
-                          <span className="w-8 text-center font-bold text-slate-700 text-sm">{item.quantity}</span>
-                          <button onClick={() => addToCart(item)} className="w-7 h-7 flex items-center justify-center bg-white rounded-md shadow-sm text-slate-600 hover:bg-green-50 transition">+</button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="pt-4 border-t border-dashed">
-                    <p className="text-xl font-black mb-4 text-slate-800">Total: ${cart.reduce((a, b) => a + (parseFloat(b.price) * b.quantity), 0).toFixed(2)}</p>
-                    <button onClick={placeOrder} className="w-full bg-green-500 text-white py-4 rounded-2xl font-black shadow-lg hover:bg-green-600 transition active:scale-95">CHECKOUT</button>
-                  </div>
-                </>
-              )}
-            </div>
-          </aside>
+          <CartSidebar 
+            cart={cart} 
+            onRemove={removeItemCompletely} 
+            onDecrease={decreaseQuantity} 
+            onIncrease={addToCart} 
+            onCheckout={placeOrder} 
+          />
         </div>
 
-        {/* --- ORDER HISTORY --- */}
+        {/* Order History */}
         {token && orders.length > 0 && (
           <section className="mt-12 mb-20">
             <h2 className="text-2xl font-bold mb-6 text-slate-400 italic">Your Vault History</h2>
@@ -323,58 +227,7 @@ export default function Home() {
         )}
       </main>
 
-      {/* --- FOOTER --- */}
-      <footer className="bg-white border-t mt-auto">
-        <div className="max-w-6xl mx-auto px-6 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
-            <div className="col-span-1 md:col-span-1">
-              <h2 className="text-xl font-black text-indigo-600 tracking-tighter mb-4">SAAD.VAULT</h2>
-              <p className="text-slate-500 text-sm leading-relaxed">
-                Premium curation for the modern enthusiast. Securing the finest gear for your collection since 2025.
-              </p>
-            </div>
-            
-            <div>
-              <h4 className="font-bold text-slate-900 mb-4">Shop</h4>
-              <ul className="text-slate-500 text-sm space-y-2">
-                <li className="hover:text-indigo-600 cursor-pointer transition">All Products</li>
-                <li className="hover:text-indigo-600 cursor-pointer transition">New Arrivals</li>
-                <li className="hover:text-indigo-600 cursor-pointer transition">Featured</li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-bold text-slate-900 mb-4">Support</h4>
-              <ul className="text-slate-500 text-sm space-y-2">
-                <li className="hover:text-indigo-600 cursor-pointer transition">Help Center</li>
-                <li className="hover:text-indigo-600 cursor-pointer transition">Shipping Info</li>
-                <li className="hover:text-indigo-600 cursor-pointer transition">Returns</li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-bold text-slate-900 mb-4">Stay Connected</h4>
-              <div className="flex gap-4 mb-4">
-                <a href={`https://github.com/saadxsalman`} target="_blank" className="bg-slate-100 p-2 rounded-lg hover:bg-indigo-100 hover:text-indigo-600 transition">
-                  <span className="text-xs font-bold">GitHub</span>
-                </a>
-              </div>
-              <div className="flex">
-                <input type="email" placeholder="Email" className="bg-slate-100 border-none rounded-l-xl px-4 py-2 text-sm w-full outline-none focus:ring-1 focus:ring-indigo-500" />
-                <button className="bg-indigo-600 text-white px-4 py-2 rounded-r-xl text-sm font-bold">Join</button>
-              </div>
-            </div>
-          </div>
-          
-          <div className="pt-8 border-t border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-slate-400 text-xs">© 2026 SAAD.VAULT. Created by <span className="font-bold text-slate-600 underline">saadxsalman</span></p>
-            <div className="flex gap-6 text-xs text-slate-400 font-medium">
-              <span className="hover:text-indigo-600 cursor-pointer">Privacy Policy</span>
-              <span className="hover:text-indigo-600 cursor-pointer">Terms of Service</span>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
 
       {/* --- MODAL: PRODUCT DETAILS --- */}
       {selectedProduct && (
