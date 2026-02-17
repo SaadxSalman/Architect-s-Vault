@@ -16,7 +16,6 @@ interface Product {
   reviews: Review[]; 
 }
 
-// Interface to handle quantities in the cart
 interface CartItem extends Product {
   quantity: number;
 }
@@ -107,7 +106,6 @@ export default function Home() {
     }
   };
 
-  // --- Manage Cart Logic ---
   const addToCart = (product: Product) => {
     setCart(prevCart => {
       const existingItem = prevCart.find(item => item.id === product.id);
@@ -170,7 +168,7 @@ export default function Home() {
   const totalItemsInCart = cart.reduce((acc, item) => acc + item.quantity, 0);
 
   return (
-    <main className="min-h-screen bg-slate-50 font-sans text-slate-900">
+    <div className="flex flex-col min-h-screen bg-slate-50 font-sans text-slate-900">
       {/* --- Navbar --- */}
       <nav className="bg-white/80 border-b sticky top-0 z-40 p-4 backdrop-blur-md shadow-sm">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
@@ -195,7 +193,7 @@ export default function Home() {
         </div>
       </nav>
 
-      <div className="max-w-6xl mx-auto p-6">
+      <main className="flex-grow max-w-6xl mx-auto p-6 w-full">
         {/* --- Search Bar --- */}
         <div className="relative mb-10 max-w-xl">
           <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xl">🔍</span>
@@ -277,51 +275,106 @@ export default function Home() {
                             <span className="truncate text-slate-800 font-bold">{item.name}</span>
                             <span className="font-medium text-indigo-600 text-xs">${(parseFloat(item.price) * item.quantity).toFixed(2)}</span>
                           </div>
-                          <button 
-                            onClick={() => removeItemCompletely(item.id)}
-                            className="text-slate-300 hover:text-red-500 transition-colors text-xs"
-                          >
-                            Remove
-                          </button>
+                          <button onClick={() => removeItemCompletely(item.id)} className="text-slate-300 hover:text-red-500 transition-colors text-xs">Remove</button>
                         </div>
-                        
-                        <div className="flex items-center gap-3">
-                          <div className="flex items-center bg-slate-100 rounded-lg p-1">
-                            <button 
-                              onClick={() => decreaseQuantity(item.id)}
-                              className="w-7 h-7 flex items-center justify-center bg-white rounded-md shadow-sm text-slate-600 hover:bg-red-50 hover:text-red-600 transition"
-                            >
-                              -
-                            </button>
-                            <span className="w-8 text-center font-bold text-slate-700 text-sm">{item.quantity}</span>
-                            <button 
-                              onClick={() => addToCart(item)}
-                              className="w-7 h-7 flex items-center justify-center bg-white rounded-md shadow-sm text-slate-600 hover:bg-green-50 hover:text-green-600 transition"
-                            >
-                              +
-                            </button>
-                          </div>
+                        <div className="flex items-center bg-slate-100 rounded-lg p-1 w-fit">
+                          <button onClick={() => decreaseQuantity(item.id)} className="w-7 h-7 flex items-center justify-center bg-white rounded-md shadow-sm text-slate-600 hover:bg-red-50 transition">-</button>
+                          <span className="w-8 text-center font-bold text-slate-700 text-sm">{item.quantity}</span>
+                          <button onClick={() => addToCart(item)} className="w-7 h-7 flex items-center justify-center bg-white rounded-md shadow-sm text-slate-600 hover:bg-green-50 transition">+</button>
                         </div>
                       </div>
                     ))}
                   </div>
                   <div className="pt-4 border-t border-dashed">
-                    <p className="text-xl font-black mb-4 text-slate-800">
-                      Total: ${cart.reduce((a, b) => a + (parseFloat(b.price) * b.quantity), 0).toFixed(2)}
-                    </p>
-                    <button 
-                      onClick={placeOrder} 
-                      className="w-full bg-green-500 text-white py-4 rounded-2xl font-black shadow-lg shadow-green-100 hover:bg-green-600 transition active:scale-95"
-                    >
-                      CHECKOUT
-                    </button>
+                    <p className="text-xl font-black mb-4 text-slate-800">Total: ${cart.reduce((a, b) => a + (parseFloat(b.price) * b.quantity), 0).toFixed(2)}</p>
+                    <button onClick={placeOrder} className="w-full bg-green-500 text-white py-4 rounded-2xl font-black shadow-lg hover:bg-green-600 transition active:scale-95">CHECKOUT</button>
                   </div>
                 </>
               )}
             </div>
           </aside>
         </div>
-      </div>
+
+        {/* --- ORDER HISTORY --- */}
+        {token && orders.length > 0 && (
+          <section className="mt-12 mb-20">
+            <h2 className="text-2xl font-bold mb-6 text-slate-400 italic">Your Vault History</h2>
+            <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
+              <table className="w-full text-left">
+                <thead className="bg-slate-50 text-slate-500 text-xs uppercase font-bold">
+                  <tr>
+                    <th className="p-5">Order ID</th>
+                    <th className="p-5">Items</th>
+                    <th className="p-5 text-right">Total</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {orders.map(o => (
+                    <tr key={o.id} className="hover:bg-indigo-50/20 transition">
+                      <td className="p-5 text-indigo-400 font-mono font-bold">#{o.id}</td>
+                      <td className="p-5 text-slate-700 text-sm font-medium">{o.product_names}</td>
+                      <td className="p-5 text-right font-black text-green-600">${o.total_price}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+      </main>
+
+      {/* --- FOOTER --- */}
+      <footer className="bg-white border-t mt-auto">
+        <div className="max-w-6xl mx-auto px-6 py-12">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+            <div className="col-span-1 md:col-span-1">
+              <h2 className="text-xl font-black text-indigo-600 tracking-tighter mb-4">SAAD.VAULT</h2>
+              <p className="text-slate-500 text-sm leading-relaxed">
+                Premium curation for the modern enthusiast. Securing the finest gear for your collection since 2025.
+              </p>
+            </div>
+            
+            <div>
+              <h4 className="font-bold text-slate-900 mb-4">Shop</h4>
+              <ul className="text-slate-500 text-sm space-y-2">
+                <li className="hover:text-indigo-600 cursor-pointer transition">All Products</li>
+                <li className="hover:text-indigo-600 cursor-pointer transition">New Arrivals</li>
+                <li className="hover:text-indigo-600 cursor-pointer transition">Featured</li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="font-bold text-slate-900 mb-4">Support</h4>
+              <ul className="text-slate-500 text-sm space-y-2">
+                <li className="hover:text-indigo-600 cursor-pointer transition">Help Center</li>
+                <li className="hover:text-indigo-600 cursor-pointer transition">Shipping Info</li>
+                <li className="hover:text-indigo-600 cursor-pointer transition">Returns</li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="font-bold text-slate-900 mb-4">Stay Connected</h4>
+              <div className="flex gap-4 mb-4">
+                <a href={`https://github.com/saadxsalman`} target="_blank" className="bg-slate-100 p-2 rounded-lg hover:bg-indigo-100 hover:text-indigo-600 transition">
+                  <span className="text-xs font-bold">GitHub</span>
+                </a>
+              </div>
+              <div className="flex">
+                <input type="email" placeholder="Email" className="bg-slate-100 border-none rounded-l-xl px-4 py-2 text-sm w-full outline-none focus:ring-1 focus:ring-indigo-500" />
+                <button className="bg-indigo-600 text-white px-4 py-2 rounded-r-xl text-sm font-bold">Join</button>
+              </div>
+            </div>
+          </div>
+          
+          <div className="pt-8 border-t border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-slate-400 text-xs">© 2026 SAAD.VAULT. Created by <span className="font-bold text-slate-600 underline">saadxsalman</span></p>
+            <div className="flex gap-6 text-xs text-slate-400 font-medium">
+              <span className="hover:text-indigo-600 cursor-pointer">Privacy Policy</span>
+              <span className="hover:text-indigo-600 cursor-pointer">Terms of Service</span>
+            </div>
+          </div>
+        </div>
+      </footer>
 
       {/* --- MODAL: PRODUCT DETAILS --- */}
       {selectedProduct && (
@@ -335,7 +388,6 @@ export default function Home() {
                 <button onClick={() => setSelectedProduct(null)} className="self-end text-slate-400 hover:text-slate-900 font-bold transition">✕ Close</button>
                 <h2 className="text-3xl font-black text-slate-800 mt-4">{selectedProduct.name}</h2>
                 <p className="text-indigo-600 text-3xl font-mono font-black mt-2">${selectedProduct.price}</p>
-                
                 <div className="mt-8 bg-slate-50 p-4 rounded-2xl flex-grow overflow-y-auto max-h-48">
                   <h4 className="text-xs font-bold uppercase text-slate-400 mb-3 tracking-widest">Customer Reviews</h4>
                   {selectedProduct.reviews?.length > 0 ? (
@@ -348,7 +400,6 @@ export default function Home() {
                     <p className="text-sm text-slate-400 italic">No reviews for this item yet.</p>
                   )}
                 </div>
-
                 <button 
                   onClick={() => { addToCart(selectedProduct); setSelectedProduct(null); }}
                   className="mt-8 w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold text-lg hover:shadow-xl hover:bg-indigo-700 transition active:scale-95"
@@ -367,64 +418,19 @@ export default function Home() {
           <form onSubmit={handleAuth} className="bg-white p-8 rounded-[2rem] w-full max-w-sm shadow-2xl transform transition-all">
             <h2 className="text-3xl font-black text-center mb-2 text-slate-800">{isLoginMode ? 'Login' : 'Join Us'}</h2>
             <p className="text-slate-500 text-center mb-6 text-sm">{isLoginMode ? 'Welcome back to your vault' : 'Create an account to start shopping'}</p>
-            
             <div className="space-y-4">
               {!isLoginMode && (
-                <input 
-                  type="email" placeholder="Email Address" 
-                  className="w-full p-4 bg-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition" 
-                  value={email} onChange={e => setEmail(e.target.value)} required 
-                />
+                <input type="email" placeholder="Email Address" className="w-full p-4 bg-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition" value={email} onChange={e => setEmail(e.target.value)} required />
               )}
-              <input 
-                type="text" placeholder="Username" 
-                className="w-full p-4 bg-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition" 
-                value={username} onChange={e => setUsername(e.target.value)} required 
-              />
-              <input 
-                type="password" placeholder="Password" 
-                className="w-full p-4 bg-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition" 
-                value={password} onChange={e => setPassword(e.target.value)} required 
-              />
-              <button className="w-full bg-indigo-600 text-white p-4 rounded-2xl font-bold text-lg hover:shadow-xl hover:bg-indigo-700 transition mt-4">
-                {isLoginMode ? 'Sign In' : 'Register Now'}
-              </button>
+              <input type="text" placeholder="Username" className="w-full p-4 bg-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition" value={username} onChange={e => setUsername(e.target.value)} required />
+              <input type="password" placeholder="Password" className="w-full p-4 bg-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition" value={password} onChange={e => setPassword(e.target.value)} required />
+              <button className="w-full bg-indigo-600 text-white p-4 rounded-2xl font-bold text-lg hover:shadow-xl hover:bg-indigo-700 transition mt-4">{isLoginMode ? 'Sign In' : 'Register Now'}</button>
             </div>
-            
-            <button type="button" onClick={() => setIsLoginMode(!isLoginMode)} className="w-full mt-6 text-indigo-600 font-bold text-sm hover:underline">
-              {isLoginMode ? "Need an account? Register" : "Already a member? Login"}
-            </button>
+            <button type="button" onClick={() => setIsLoginMode(!isLoginMode)} className="w-full mt-6 text-indigo-600 font-bold text-sm hover:underline">{isLoginMode ? "Need an account? Register" : "Already a member? Login"}</button>
             <button type="button" onClick={() => setShowAuthModal(false)} className="w-full mt-3 text-slate-400 text-xs font-semibold hover:text-slate-600">Maybe later</button>
           </form>
         </div>
       )}
-
-      {/* --- ORDER HISTORY --- */}
-      {token && orders.length > 0 && (
-        <section className="max-w-6xl mx-auto p-6 mt-12 mb-20">
-          <h2 className="text-2xl font-bold mb-6 text-slate-400 italic">Your Vault History</h2>
-          <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
-            <table className="w-full text-left">
-              <thead className="bg-slate-50 text-slate-500 text-xs uppercase font-bold">
-                <tr>
-                  <th className="p-5">Order ID</th>
-                  <th className="p-5">Items</th>
-                  <th className="p-5 text-right">Total</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {orders.map(o => (
-                  <tr key={o.id} className="hover:bg-indigo-50/20 transition">
-                    <td className="p-5 text-indigo-400 font-mono font-bold">#{o.id}</td>
-                    <td className="p-5 text-slate-700 text-sm font-medium">{o.product_names}</td>
-                    <td className="p-5 text-right font-black text-green-600">${o.total_price}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
-    </main>
+    </div>
   );
 }
