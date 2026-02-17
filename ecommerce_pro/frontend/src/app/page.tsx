@@ -5,6 +5,8 @@ import Navbar from '@/components/Navbar';
 import ProductCard from '@/components/ProductCard';
 import CartSidebar from '@/components/CartSidebar';
 import Footer from '@/components/Footer';
+import AuthModal from '@/auth/AuthModal';
+import ProductDetailsModal from '@/components/ProductDetailsModal';
 
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -16,12 +18,6 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [isLoginMode, setIsLoginMode] = useState(true);
-
-  // Form States
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [email, setEmail] = useState('');
 
   useEffect(() => {
     const savedToken = localStorage.getItem('accessToken');
@@ -53,35 +49,17 @@ export default function Home() {
     }
   };
 
-  const handleAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const endpoint = isLoginMode ? 'token/' : 'register/';
-    const body = isLoginMode ? { username, password } : { username, password, email };
+  const handleLoginSuccess = (newToken: string) => {
+    setToken(newToken);
+    localStorage.setItem('accessToken', newToken);
+    setShowAuthModal(false);
+    fetchOrders(newToken);
+  };
 
-    try {
-      const res = await fetch(`http://127.0.0.1:8000/api/${endpoint}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        if (isLoginMode) {
-          setToken(data.access);
-          localStorage.setItem('accessToken', data.access);
-          setShowAuthModal(false);
-          fetchOrders(data.access);
-        } else {
-          alert("Success! Now please login.");
-          setIsLoginMode(true);
-        }
-      } else { 
-        alert(JSON.stringify(data)); 
-      }
-    } catch (err) {
-      alert("Server error connecting to backend.");
-    }
+  const handleLogout = () => {
+    localStorage.clear();
+    setToken(null);
+    setOrders([]);
   };
 
   const addToCart = (product: Product) => {
@@ -147,7 +125,7 @@ export default function Home() {
     <div className="flex flex-col min-h-screen bg-slate-50 font-sans text-slate-900">
       <Navbar 
         token={token} 
-        onLogout={() => { localStorage.clear(); setToken(null); setOrders([]); }} 
+        onLogout={handleLogout} 
         onShowAuth={() => setShowAuthModal(true)} 
       />
 
@@ -229,60 +207,17 @@ export default function Home() {
 
       <Footer />
 
-      {/* --- MODAL: PRODUCT DETAILS --- */}
-      {selectedProduct && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex justify-center items-center z-[60] p-4">
-          <div className="bg-white rounded-[2.5rem] w-full max-w-2xl overflow-hidden shadow-2xl animate-in zoom-in duration-300">
-            <div className="grid grid-cols-1 md:grid-cols-2">
-              <div className="h-64 md:h-full bg-slate-200">
-                <img src={selectedProduct.image_url} className="w-full h-full object-cover" alt={selectedProduct.name} />
-              </div>
-              <div className="p-8 flex flex-col">
-                <button onClick={() => setSelectedProduct(null)} className="self-end text-slate-400 hover:text-slate-900 font-bold transition">✕ Close</button>
-                <h2 className="text-3xl font-black text-slate-800 mt-4">{selectedProduct.name}</h2>
-                <p className="text-indigo-600 text-3xl font-mono font-black mt-2">${selectedProduct.price}</p>
-                <div className="mt-8 bg-slate-50 p-4 rounded-2xl flex-grow overflow-y-auto max-h-48">
-                  <h4 className="text-xs font-bold uppercase text-slate-400 mb-3 tracking-widest">Customer Reviews</h4>
-                  {selectedProduct.reviews?.length > 0 ? (
-                    selectedProduct.reviews.map(r => (
-                      <p key={r.id} className="text-sm italic text-slate-600 mb-3 border-l-4 border-indigo-200 pl-3">
-                        "{r.content}" — <span className="text-amber-500">⭐{r.rating}</span>
-                      </p>
-                    ))
-                  ) : (
-                    <p className="text-sm text-slate-400 italic">No reviews for this item yet.</p>
-                  )}
-                </div>
-                <button 
-                  onClick={() => { addToCart(selectedProduct); setSelectedProduct(null); }}
-                  className="mt-8 w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold text-lg hover:shadow-xl hover:bg-indigo-700 transition active:scale-95"
-                >
-                  Add to Cart
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <ProductDetailsModal 
+        product={selectedProduct} 
+        onClose={() => setSelectedProduct(null)} 
+        onAddToCart={addToCart} 
+      />
 
-      {/* --- MODAL: AUTH --- */}
       {showAuthModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-[100] p-4">
-          <form onSubmit={handleAuth} className="bg-white p-8 rounded-[2rem] w-full max-w-sm shadow-2xl transform transition-all">
-            <h2 className="text-3xl font-black text-center mb-2 text-slate-800">{isLoginMode ? 'Login' : 'Join Us'}</h2>
-            <p className="text-slate-500 text-center mb-6 text-sm">{isLoginMode ? 'Welcome back to your vault' : 'Create an account to start shopping'}</p>
-            <div className="space-y-4">
-              {!isLoginMode && (
-                <input type="email" placeholder="Email Address" className="w-full p-4 bg-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition" value={email} onChange={e => setEmail(e.target.value)} required />
-              )}
-              <input type="text" placeholder="Username" className="w-full p-4 bg-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition" value={username} onChange={e => setUsername(e.target.value)} required />
-              <input type="password" placeholder="Password" className="w-full p-4 bg-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition" value={password} onChange={e => setPassword(e.target.value)} required />
-              <button className="w-full bg-indigo-600 text-white p-4 rounded-2xl font-bold text-lg hover:shadow-xl hover:bg-indigo-700 transition mt-4">{isLoginMode ? 'Sign In' : 'Register Now'}</button>
-            </div>
-            <button type="button" onClick={() => setIsLoginMode(!isLoginMode)} className="w-full mt-6 text-indigo-600 font-bold text-sm hover:underline">{isLoginMode ? "Need an account? Register" : "Already a member? Login"}</button>
-            <button type="button" onClick={() => setShowAuthModal(false)} className="w-full mt-3 text-slate-400 text-xs font-semibold hover:text-slate-600">Maybe later</button>
-          </form>
-        </div>
+        <AuthModal 
+          onClose={() => setShowAuthModal(false)} 
+          onSuccess={handleLoginSuccess} 
+        />
       )}
     </div>
   );
