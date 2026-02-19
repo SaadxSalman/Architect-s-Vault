@@ -1,8 +1,13 @@
 import express from 'express';
 import * as trpcExpress from '@trpc/server/adapters/express';
 import cors from 'cors';
-import { appRouter, createContext } from './router.js'; // MUST have .js
+import { appRouter, createContext } from './router.js';
+
 const app = express();
+
+// 1. MUST HAVE THIS: This parses the body so tRPC can see it
+app.use(express.json()); 
+
 app.use(cors());
 
 app.use(
