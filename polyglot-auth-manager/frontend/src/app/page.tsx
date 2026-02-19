@@ -1,43 +1,43 @@
-'use client';
-import { useState } from 'react';
+"use client";
+import { trpc } from "./layout";
+import { useState } from "react";
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState('tasks');
+  const tasks = trpc.getTasks.useQuery();
+  const createTask = trpc.createTask.useMutation({
+    onSuccess: () => tasks.refetch(),
+  });
+  const [title, setTitle] = useState("");
 
   return (
-    <main className="p-8 max-w-5xl mx-auto">
-      <header className="mb-12">
-        <h2 className="text-4xl font-extrabold mb-2">API Control Center</h2>
-        <p className="text-slate-400">Testing Multi-Strategy Authentication with tRPC & Supabase</p>
-      </header>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Auth Strategy Cards */}
-        <div className="p-6 rounded-xl bg-slate-800 border border-slate-700">
-          <h3 className="text-orange-400 font-mono mb-2">Basic Auth</h3>
-          <p className="text-xs text-slate-400 mb-4">Used for /admin/system-health</p>
-          <button className="w-full py-2 bg-slate-700 hover:bg-slate-600 rounded">Test Admin</button>
-        </div>
-
-        <div className="p-6 rounded-xl bg-slate-800 border border-slate-700">
-          <h3 className="text-green-400 font-mono mb-2">API Keys</h3>
-          <p className="text-xs text-slate-400 mb-4">Used for /public/metrics</p>
-          <button className="w-full py-2 bg-slate-700 hover:bg-slate-600 rounded">Fetch Metrics</button>
-        </div>
-
-        <div className="p-6 rounded-xl bg-slate-800 border border-slate-700">
-          <h3 className="text-blue-400 font-mono mb-2">JWT (Bearer)</h3>
-          <p className="text-xs text-slate-400 mb-4">Standard User Task Management</p>
-          <button className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 rounded">View Tasks</button>
+    <main className="p-8 max-w-4xl mx-auto">
+      <h1 className="text-4xl font-bold mb-8 text-blue-400">Polyglot Resource Manager</h1>
+      
+      <div className="bg-slate-800 p-6 rounded-lg mb-8 border border-slate-700">
+        <h2 className="text-xl mb-4">Add New Task (tRPC)</h2>
+        <div className="flex gap-4">
+          <input 
+            className="bg-slate-900 border border-slate-600 p-2 rounded flex-1"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Enter task name..."
+          />
+          <button 
+            onClick={() => createTask.mutate({ title, status: 'pending' })}
+            className="bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded font-bold transition"
+          >
+            Add Task
+          </button>
         </div>
       </div>
 
-      <section className="mt-12 bg-black/30 p-6 rounded-lg border border-slate-800">
-        <h3 className="text-lg mb-4">Response Preview (Postman Mocking)</h3>
-        <pre className="text-sm text-pink-400">
-          {`{ "status": 200, "message": "Select an action to see tRPC response" }`}
-        </pre>
-      </section>
+      <div className="grid gap-4">
+        {tasks.data?.map((task: any) => (
+          <div key={task.id} className="bg-slate-800 p-4 rounded border-l-4 border-blue-500">
+            {task.title} <span className="text-slate-500 text-sm">({task.status})</span>
+          </div>
+        ))}
+      </div>
     </main>
   );
 }

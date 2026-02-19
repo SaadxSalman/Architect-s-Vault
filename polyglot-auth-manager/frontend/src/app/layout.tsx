@@ -1,22 +1,29 @@
-import type { Metadata } from "next";
+"use client";
 import "./globals.css";
+import { useState } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { httpBatchLink } from "@trpc/client";
+import { createTRPCReact } from "@trpc/react-query";
+import type { AppRouter } from "../../backend/src/router";
 
-export const metadata: Metadata = {
-  title: "Polyglot Auth Manager",
-  description: "Mastering APIs and Postman",
-};
+export const trpc = createTRPCReact<AppRouter>();
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const [queryClient] = useState(() => new QueryClient());
+  const [trpcClient] = useState(() =>
+    trpc.createClient({
+      links: [httpBatchLink({ url: "http://localhost:4000/trpc" })],
+    })
+  );
+
   return (
     <html lang="en">
-      <body className="bg-slate-900 text-white antialiased">
-        <nav className="p-4 border-b border-slate-800 flex justify-between">
-          <h1 className="font-bold text-xl text-indigo-400">Polyglot Auth</h1>
-          <div className="space-x-4 text-sm">
-            <span>v1.0.0</span>
-          </div>
-        </nav>
-        {children}
+      <body className="bg-slate-900 text-white">
+        <trpc.Provider client={trpcClient} queryClient={queryClient}>
+          <QueryClientProvider client={queryClient}>
+            {children}
+          </QueryClientProvider>
+        </trpc.Provider>
       </body>
     </html>
   );
