@@ -1,6 +1,0 @@
-node_modules
-.next
-dist
-.env
-*.pdf
-.DS_Store
