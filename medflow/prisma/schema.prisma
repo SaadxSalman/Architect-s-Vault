@@ -1,27 +1,38 @@
-generator client {
-  provider = "prisma-client-js"
-}
-
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-
 model Product {
-  id                     String   @id @default(cuid())
+  id                     String      @id @default(cuid())
   name                   String
   category               String
   price                  Float
-  isPrescriptionRequired Boolean  @default(false)
+  isPrescriptionRequired Boolean     @default(false)
   stock                  Int
+  orderItems             OrderItem[] // Relation to join table
 }
 
 model Order {
-  id              String   @id @default(cuid())
+  id              String      @id @default(cuid())
   userId          String
-  status          String   @default("PENDING") // PENDING, PAID, SHIPPED
+  status          OrderStatus @default(PENDING)
   prescriptionUrl String?
   totalPrice      Float
-  lemonSqueezyId  String?  @unique // Link to Lemon Squeezy Order ID
-  createdAt       DateTime @default(now())
+  lemonSqueezyId  String?     @unique
+  createdAt       DateTime    @default(now())
+  items           OrderItem[] // Relation to join table
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  productId String
+  quantity  Int
+  priceAtPurchase Float // Crucial: Captures price at the moment of sale
+
+  order   Order   @relation(fields: [orderId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  SHIPPED
+  CANCELLED
 }
