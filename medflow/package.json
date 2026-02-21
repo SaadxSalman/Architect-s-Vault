@@ -9,7 +9,7 @@
     "dev": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\""
   },
   "keywords": [],
-  "author": "",
+  "author": "saadxsalman",
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
@@ -41,5 +41,8 @@
     "react-dom": "^19.2.4",
     "tailwind-merge": "^3.5.0",
     "ts-node": "^10.9.2"
+  },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
   }
 }
