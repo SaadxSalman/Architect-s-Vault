@@ -1,0 +1,27 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id                     String   @id @default(cuid())
+  name                   String
+  category               String
+  price                  Float
+  isPrescriptionRequired Boolean  @default(false)
+  stock                  Int
+}
+
+model Order {
+  id              String   @id @default(cuid())
+  userId          String
+  status          String   @default("PENDING") // PENDING, PAID, SHIPPED
+  prescriptionUrl String?
+  totalPrice      Float
+  lemonSqueezyId  String?  @unique // Link to Lemon Squeezy Order ID
+  createdAt       DateTime @default(now())
+}
