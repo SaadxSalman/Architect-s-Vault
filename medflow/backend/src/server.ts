@@ -1,6 +1,9 @@
 import express from 'express';
 import cors from 'cors';
+import nodemailer from 'nodemailer';
 import { PrismaClient } from '@prisma/client';
+import { jsPDF } from 'jspdf';
+import { v2 as cloudinary } from 'cloudinary';
 import { lemonSqueezySetup, createCheckout } from "@lemonsqueezy/lemonsqueezy.js";
 
 const app = express();
@@ -8,63 +11,77 @@ const prisma = new PrismaClient();
 
 // Configuration
 lemonSqueezySetup({ apiKey: process.env.LEMON_SQUEEZY_API_KEY as string });
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
 app.use(cors());
 app.use(express.json());
 
-// --- STOREFRONT ENDPOINTS ---
+// --- 📧 EMAIL SERVICE ---
+const transporter = nodemailer.createTransport({
+  host: process.env.EMAIL_HOST,
+  port: 465,
+  secure: true,
+  auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+});
 
+// --- 📄 PDF INVOICE ENDPOINT ---
+app.get('/api/orders/:id/invoice', async (req, res) => {
+  const order = await prisma.order.findUnique({ where: { id: req.params.id } });
+  if (!order) return res.status(404).send("Order not found");
+
+  const doc = new jsPDF();
+  doc.setFont("helvetica", "bold");
+  doc.text("MEDFLOW PHARMACY INVOICE", 10, 20);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Order ID: ${order.id}`, 10, 40);
+  doc.text(`Date: ${new Date().toLocaleDateString()}`, 10, 50);
+  doc.text(`Total Paid: $${order.totalPrice.toFixed(2)}`, 10, 60);
+  doc.text("Status: Verified & Processed", 10, 70);
+
+  const pdfBuffer = doc.output('arraybuffer');
+  res.setHeader('Content-Type', 'application/pdf');
+  res.send(Buffer.from(pdfBuffer));
+});
+
+// --- 🛒 STOREFRONT API ---
 app.get('/api/products', async (req, res) => {
-  const products = await prisma.product.findMany();
-  res.json(products);
+  res.json(await prisma.product.findMany());
 });
 
 app.post('/api/orders', async (req, res) => {
-  const { userId, items, prescriptionUrl, totalPrice } = req.body;
+  const { userId, totalPrice, prescriptionUrl } = req.body;
   const order = await prisma.order.create({
-    data: { 
-      userId, 
-      status: 'PENDING', 
-      prescriptionUrl, 
-      totalPrice 
-    }
+    data: { userId, totalPrice, prescriptionUrl, status: 'PENDING' }
   });
   res.json(order);
 });
 
-// --- LEMON SQUEEZY INTEGRATION ---
-
-app.post('/api/checkout', async (req, res) => {
-  const { variantId, userEmail, orderId } = req.body;
-  
-  const { data, error } = await createCheckout(
-    process.env.LEMON_SQUEEZY_STORE_ID!,
-    variantId,
-    {
-      checkoutData: { email: userEmail, custom: { orderId } },
-      productOptions: { redirectUrl: `${process.env.NEXT_PUBLIC_FRONTEND_URL}/success` }
-    }
-  );
-
-  if (error) return res.status(500).json(error);
-  res.json({ url: data?.data.attributes.url });
-});
-
-// --- ADMIN KANBAN ENDPOINTS ---
-
+// --- 🛡️ ADMIN API ---
 app.get('/api/admin/orders', async (req, res) => {
-  const orders = await prisma.order.findMany({ orderBy: { createdAt: 'desc' } });
-  res.json(orders);
+  res.json(await prisma.order.findMany({ orderBy: { createdAt: 'desc' } }));
 });
 
 app.patch('/api/admin/orders/:id', async (req, res) => {
-  const { id } = req.params;
-  const { status } = req.body; // e.g., 'VERIFIED', 'SHIPPED'
-  const updated = await prisma.order.update({
-    where: { id },
+  const { status } = req.body;
+  const order = await prisma.order.update({
+    where: { id: req.params.id },
     data: { status }
   });
-  res.json(updated);
+
+  if (status === 'SHIPPED') {
+    await transporter.sendMail({
+      from: '"MedFlow" <orders@medflow.com>',
+      to: "saadxsalman@example.com",
+      subject: "Your Prescription is on the way!",
+      html: `<b>Order #${order.id.slice(-6)}</b> has been shipped.`
+    });
+  }
+  res.json(order);
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 MedFlow Backend on port ${PORT}`));
+const PORT = 5000;
+app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
