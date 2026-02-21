@@ -34,21 +34,26 @@ MedFlow is a high-performance, full-stack medical commerce platform built with *
 
 ```text
 medflow/
-├── backend/            # Express Server
+├── .env                        # Root Environment Variables (Shared)
+├── .gitignore                  # Root Git Ignore (Shared)
+├── package.json                # Root package.json (Concurrently runner)
+├── prisma/                     # Database Layer
+│   ├── schema.prisma           # Database Models
+│   └── seed.ts                 # Initial Data (Medicine/Equipment)
+├── backend/                    # Node.js + Express Backend
 │   ├── src/
-│   │   └── server.ts   # Main API & Business Logic
-│   └── package.json
-├── frontend/           # Next.js Application
-│   ├── app/
-│   │   ├── layout.tsx  # Root Layout & Providers
-│   │   ├── page.tsx    # Storefront & Admin Logic
-│   │   └── globals.css # Styling
-│   └── package.json
-├── prisma/             # Database Schema & Seeding
-│   ├── schema.prisma
-│   └── seed.ts
-├── .env                # Shared Environment Variables
-└── .gitignore          # Project-wide ignore rules
+│   │   └── server.ts           # Main API (Auth, Payments, Invoicing)
+│   ├── package.json
+│   └── tsconfig.json
+└── frontend/                   # Next.js 15 + Tailwind Frontend
+    ├── app/
+    │   ├── layout.tsx          # Root Layout (Fonts, Scripts)
+    │   ├── page.tsx            # Main UI (Storefront & Admin Kanban)
+    │   └── globals.css         # Tailwind & Theme Styles
+    ├── public/                 # Static Assets (Logos, Icons)
+    ├── next.config.ts          # Next.js Configuration
+    ├── package.json
+    └── tsconfig.json
 
 ```
 
@@ -78,24 +83,44 @@ npm run install-all
 Create a `.env` file in the root directory:
 
 ```env
-# Database
-DATABASE_URL="your_postgresql_url"
+# ==========================================================
+# 🔌 DATABASE CONFIGURATION (Prisma & Supabase)
+# ==========================================================
+# Get this from Supabase > Project Settings > Database
+DATABASE_URL="postgresql://postgres:[YOUR-PASSWORD]@db.[YOUR-PROJECT-ID].supabase.co:5432/postgres"
 
-# Cloudinary
-CLOUDINARY_CLOUD_NAME="your_cloud_name"
+# ==========================================================
+# ☁️ CLOUDINARY CONFIGURATION (Prescription Storage)
+# ==========================================================
+# Get these from your Cloudinary Dashboard
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME="your_cloud_name"
 CLOUDINARY_API_KEY="your_api_key"
 CLOUDINARY_API_SECRET="your_api_secret"
+# The preset name you created in Cloudinary Settings > Upload
+NEXT_PUBLIC_CLOUDINARY_PRESET="medflow_unsigned"
 
-# Lemon Squeezy
-LEMON_SQUEEZY_API_KEY="your_api_key"
+# ==========================================================
+# 🍋 LEMON SQUEEZY CONFIGURATION (Payments)
+# ==========================================================
+# Get these from Lemon Squeezy > Settings > API
+LEMON_SQUEEZY_API_KEY="your_ls_api_key"
 LEMON_SQUEEZY_STORE_ID="your_store_id"
+# The Variant ID for your medicine product
+LEMON_SQUEEZY_VARIANT_ID="your_variant_id"
 
-# Email (SMTP)
-EMAIL_HOST="smtp.yourprovider.com"
-EMAIL_USER="your_email@domain.com"
-EMAIL_PASS="your_app_password"
+# ==========================================================
+# 📧 EMAIL CONFIGURATION (Nodemailer)
+# ==========================================================
+# Use Gmail (App Password) or Resend/SendGrid
+EMAIL_HOST="smtp.gmail.com"
+EMAIL_PORT=465
+EMAIL_USER="your-email@gmail.com"
+EMAIL_PASS="your-app-specific-password"
 
-# URLs
+# ==========================================================
+# 🌐 APP URLS
+# ==========================================================
+PORT=5000
 NEXT_PUBLIC_API_URL="http://localhost:5000"
 NEXT_PUBLIC_FRONTEND_URL="http://localhost:3000"
 
