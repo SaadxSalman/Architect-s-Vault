@@ -5,6 +5,7 @@ import crypto from 'crypto';
 import { jsPDF } from 'jspdf';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { createClient } from '@supabase/supabase-js';
 
 // --- ESM path helpers ---
 const __filename = fileURLToPath(import.meta.url);
@@ -14,6 +15,11 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 const app = express();
+
+// --- Supabase Configuration ---
+const supabaseUrl = process.env.SUPABASE_URL || '';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 // --- Middlewares ---
 app.use(express.json());
@@ -25,7 +31,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type']
 }));
 
-// --- Mock Database ---
+// --- Mock Database (Orders) ---
 let orders = [
   { 
     id: 'ORD-7721', 
@@ -58,12 +64,34 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// 2. Get all orders
+// 2. Get all products from Supabase
+app.get('/api/products', async (req, res) => {
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .order('name', { ascending: true });
+
+  if (error) return res.status(500).json({ error: error.message });
+  
+  // Mapping DB snake_case to Frontend camelCase
+  const formattedProducts = data.map(p => ({
+    id: p.id,
+    name: p.name,
+    price: parseFloat(p.price),
+    isPrescriptionRequired: p.is_prescription_required,
+    category: p.category,
+    description: p.description
+  }));
+
+  res.status(200).json(formattedProducts);
+});
+
+// 3. Get all orders
 app.get('/api/orders', (req, res) => {
   res.status(200).json(orders);
 });
 
-// 3. Update Order Status (Admin Dashboard Logic)
+// 4. Update Order Status (Admin Dashboard Logic)
 app.put('/api/orders/:id', (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
@@ -77,7 +105,7 @@ app.put('/api/orders/:id', (req, res) => {
   res.status(404).json({ message: "Order not found" });
 });
 
-// 4. Create New Order (Checkout Logic)
+// 5. Create New Order (Checkout Logic)
 app.post('/api/orders', (req, res) => {
   try {
     const { items, total, hasRx } = req.body;
@@ -105,7 +133,7 @@ app.post('/api/orders', (req, res) => {
   }
 });
 
-// 5. Payment Webhook (Lemon Squeezy Integration)
+// 6. Payment Webhook (Lemon Squeezy Integration)
 app.post('/api/webhook', (req, res) => {
   const secret = process.env.LEMON_SQUEEZY_WEBHOOK_SECRET || 'secret';
   const hmac = crypto.createHmac('sha256', secret);
@@ -121,7 +149,7 @@ app.post('/api/webhook', (req, res) => {
   res.status(200).send('Webhook Processed');
 });
 
-// 6. Professional PDF Invoice Generator
+// 7. Professional PDF Invoice Generator
 app.get('/api/invoice/:orderId', (req, res) => {
   const { orderId } = req.params;
   const order = orders.find(o => o.id === orderId);
@@ -179,7 +207,8 @@ app.listen(PORT, 'localhost', () => {
   console.log(`
   🚀 MedFlow Backend Operational
   👤 User Context: saadxsalman
-  📡 API: http://localhost:${PORT}/api/orders
+  📡 Products API: http://localhost:${PORT}/api/products
+  📡 Orders API: http://localhost:${PORT}/api/orders
   🌍 Health: http://localhost:${PORT}/api/health
   `);
 });

@@ -1,10 +1,12 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ShoppingCart, Upload, CheckCircle, Pill, 
   Download, Activity, Plus, Minus, Trash2 
 } from 'lucide-react';
 import { create } from 'zustand';
+
+// --- Types & Store ---
 
 interface CartItem {
   id: number;
@@ -47,15 +49,40 @@ const useCart = create<CartStore>((set) => ({
   clearCart: () => set({ items: [] }),
 }));
 
+// --- Main Component ---
+
 export default function MedFlowStore() {
   const { items, addItem, removeItem, updateQuantity, clearCart } = useCart();
+  
+  // UI States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [lastOrderId, setLastOrderId] = useState(""); // Track the real ID from server
+  const [lastOrderId, setLastOrderId] = useState("");
+
+  // Product Data States
+  const [products, setProducts] = useState<any[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
 
   const requiresRx = items.some(i => i.isPrescriptionRequired);
   const total = items.reduce((acc, curr) => acc + (curr.price * curr.quantity), 0);
+
+  // Fetch products from backend on mount
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const res = await fetch('http://localhost:5000/api/products');
+        if (!res.ok) throw new Error("Failed to fetch");
+        const data = await res.json();
+        setProducts(data);
+      } catch (err) {
+        console.error("Failed to fetch products:", err);
+      } finally {
+        setLoadingProducts(false);
+      }
+    };
+    fetchProducts();
+  }, []);
 
   const handleCheckout = () => {
     if (requiresRx) setIsModalOpen(true);
@@ -77,7 +104,7 @@ export default function MedFlowStore() {
       });
       const data = await response.json();
       
-      setLastOrderId(data.id); // Save the ID for the invoice
+      setLastOrderId(data.id);
       setIsSuccess(true);
       clearCart();
     } catch (error) {
@@ -94,6 +121,7 @@ export default function MedFlowStore() {
 
   return (
     <div className="min-h-screen pb-20">
+      {/* Header Section */}
       <div className="mb-8 flex justify-between items-center bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
         <div>
           <h2 className="text-2xl font-bold text-slate-900">Medical Catalog</h2>
@@ -104,33 +132,36 @@ export default function MedFlowStore() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Products Grid */}
         <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
-          {[
-            { id: 1, name: 'Amoxicillin 500mg', price: 45.0, isPrescriptionRequired: true, category: 'Antibiotics' },
-            { id: 2, name: 'Paracetamol Forte', price: 12.5, isPrescriptionRequired: false, category: 'Pain Relief' },
-            { id: 3, name: 'Stethoscope Pro V3', price: 89.9, isPrescriptionRequired: false, category: 'Diagnostics' },
-            { id: 4, name: 'Insulin Pen Needle', price: 22.0, isPrescriptionRequired: true, category: 'Diabetes' },
-          ].map((p) => (
-            <div key={p.id} className="bg-white p-6 rounded-2xl border border-slate-100 hover:border-sky-300 transition-all shadow-sm group">
-              <div className="flex justify-between mb-4">
-                <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase ${p.isPrescriptionRequired ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'}`}>
-                  {p.isPrescriptionRequired ? 'Rx Needed' : 'OTC'}
-                </span>
-                <Pill size={16} className="text-slate-300 group-hover:text-sky-500 transition" />
-              </div>
-              <p className="text-xs text-slate-400 mb-1">{p.category}</p>
-              <h3 className="text-lg font-bold text-slate-800">{p.name}</h3>
-              <p className="text-xl text-sky-600 mt-2 font-bold">${p.price.toFixed(2)}</p>
-              <button 
-                onClick={() => addItem(p)} 
-                className="mt-6 w-full bg-slate-50 text-slate-900 py-3 rounded-xl font-bold hover:bg-sky-600 hover:text-white transition-colors border border-slate-200"
-              >
-                Add to Cart
-              </button>
+          {loadingProducts ? (
+            <div className="col-span-full py-20 text-center text-slate-400 animate-pulse font-medium">
+              Loading Medical Catalog...
             </div>
-          ))}
+          ) : (
+            products.map((p) => (
+              <div key={p.id} className="bg-white p-6 rounded-2xl border border-slate-100 hover:border-sky-300 transition-all shadow-sm group">
+                <div className="flex justify-between mb-4">
+                  <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase ${p.isPrescriptionRequired ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                    {p.isPrescriptionRequired ? 'Rx Needed' : 'OTC'}
+                  </span>
+                  <Pill size={16} className="text-slate-300 group-hover:text-sky-500 transition" />
+                </div>
+                <p className="text-xs text-slate-400 mb-1">{p.category}</p>
+                <h3 className="text-lg font-bold text-slate-800">{p.name}</h3>
+                <p className="text-xl text-sky-600 mt-2 font-bold">${p.price.toFixed(2)}</p>
+                <button 
+                  onClick={() => addItem(p)} 
+                  className="mt-6 w-full bg-slate-50 text-slate-900 py-3 rounded-xl font-bold hover:bg-sky-600 hover:text-white transition-colors border border-slate-200"
+                >
+                  Add to Cart
+                </button>
+              </div>
+            ))
+          )}
         </div>
 
+        {/* Sidebar / Cart Section */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 h-fit shadow-xl sticky top-24">
           <h3 className="text-lg font-bold mb-6 flex items-center gap-2 border-b pb-4 text-slate-800">
             <ShoppingCart className="text-sky-600" size={20} /> Order Summary
@@ -196,6 +227,7 @@ export default function MedFlowStore() {
         </div>
       </div>
 
+      {/* Prescription Upload Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl animate-in fade-in zoom-in duration-200">
