@@ -1,0 +1,18 @@
+[package]
+name = "rust-core"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+# Web framework for the internal API
+axum = "0.7"
+tokio = { version = "1.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# AI & Computer Vision
+tch = "0.14" # LibTorch bindings for Rust
+image = "0.24"
+
+# Database
+milvus = "0.1" # Milvus Rust SDK
