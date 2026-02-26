@@ -53,7 +53,7 @@ This repository is designed for those who learn by analyzing and breaking real c
 
 * **GitHub:** [@saadxsalman](https://github.com/saadxsalman)
 * **LinkedIn:** [Saad Salman](https://linkedin.com/in/saadxsalman)
-* **Hugging Face:** [SaadSalman7](https://huggingface.co/saadxsalman)
+* **Hugging Face:** [saadxsalman](https://huggingface.co/saadxsalman)
 
 ---
 
