@@ -51,8 +51,8 @@ This repository is designed for those who learn by analyzing and breaking real c
 
 ## 📬 Connect
 
-* **GitHub:** [@saadxsalman](https://github.com/saadxsalman)
-* **LinkedIn:** [Saad Salman](https://linkedin.com/in/saadxsalman)
+* **GitHub:** [saadxsalman](https://github.com/saadxsalman)
+* **LinkedIn:** [saadxsalman](https://linkedin.com/in/saadxsalman)
 * **Hugging Face:** [saadxsalman](https://huggingface.co/saadxsalman)
 
 ---
