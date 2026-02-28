@@ -12,7 +12,7 @@ This vault is an expansive collection of real-world projects, services, and syst
 
 ## 🗝️ The Project-First Philosophy
 
-The core focus of this vault is **pure project execution**. Each entry is a standalone, functional piece of software designed to demonstrate how different languages and stacks handle complex requirements in the real world.
+The core focus of this vault is **pure project execution**. Each entry is a standalone, functional piece of software designed to demonstrate how different languages and stacks handle complex requirements in the real world..
 
 * **Polyglot Project Base:** A diverse range of builds across **JavaScript, TypeScript, Python, Go, Rust**, and more.
 * **Complete Backend Solutions:** Real-world applications of SQL/NoSQL, Redis caching, and Cloud infrastructure.
