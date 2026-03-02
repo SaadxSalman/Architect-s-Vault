@@ -57,4 +57,4 @@ This repository is designed for those who learn by analyzing and breaking real c
 
 ---
 
-*Curated and Maintained by Saad Salman. Built for the architectural practitioner..*
+*Curated and Maintained by Saad Salman. Built for the architectural practitioner.*
