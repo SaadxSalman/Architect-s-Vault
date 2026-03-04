@@ -6,7 +6,7 @@
 
 Welcome to **The Architect's Vault**, a premier, polyglot repository curated by **[saadxsalman](https://github.com/saadxsalman)**. This is a high-level engineering registry built on a single, uncompromising principle: **Mastery through Implementation.**
 
-This vault is an expansive collection of real-world projects, services, and systems. It is entirely **stack-agnostic**, featuring full-scale implementations across **all major languages (Node.js/TS, Go, Python, Rust, C++), runtimes (Bun, Deno), and backend ecosystems.** We do not just discuss architecture; we build it.
+This vault is an expansive collection of real-world projects, services, and systems. It is entirely **stack-agnostic**, featuring full-scale implementations across **all major languages (Node.js/TS, Go, Python, Rust, C++), runtimes (Bun, Deno), and backend ecosystems.** We do not just discuss architecture; we build it..
 
 ---
 
