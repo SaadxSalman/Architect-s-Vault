@@ -34,7 +34,7 @@ Every project within this vault is an experiment in structure. We explore how to
 ### 🛠️ Practical Application
 This is not a space for theoretical snippets. Every directory represents a solved problem. By focusing on full-stack and backend projects, the vault provides a blueprint for developers to understand deployment, environment management, and service orchestration across multiple runtimes.
 
---
+---
 
 ## 💡 How to Navigate the Vault
 
