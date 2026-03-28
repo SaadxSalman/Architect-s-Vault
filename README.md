@@ -57,4 +57,8 @@ This repository is designed for those who learn by analyzing and breaking real c
 
 ---
 
+<<<<<<< HEAD
 *Curated and Maintained by Saad Salman. Built for the architectural practitioner..*
+=======
+*Curated and Maintained by Saad Salman. Built for the architectural practitioner...*
+>>>>>>> f116c0094378c654e94fc139572f8e308ea348fe
