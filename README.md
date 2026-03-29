@@ -47,7 +47,7 @@ This repository is designed for those who learn by analyzing and breaking real c
 2.  **Pick a Project:** Navigate into the repository to find a diverse array of standalone projects.
 3.  **Deploy & Experiment:** Every project is a standalone reference. Run the code, modify the stack, and observe the implementation details firsthand.
 
----
+--
 
 ## 📬 Connect
 
