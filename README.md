@@ -55,6 +55,6 @@ This repository is designed for those who learn by analyzing and breaking real c
 * **LinkedIn:** [saadxsalman](https://linkedin.com/in/saadxsalman)
 * **Hugging Face:** [saadxsalman](https://huggingface.co/saadxsalman)
 
---
+---
 
 *Curated and Maintained by Saad Salman. Built for the architectural practitioner.*
